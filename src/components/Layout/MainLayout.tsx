@@ -1,6 +1,5 @@
 import React from "react";
 import "./MainLayout.css";
-//import AppControls from "../components/AppControls/AppControls";
 import AppControls from "../AppControls/AppControls";
 
 interface MainLayoutProps {
@@ -16,7 +15,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   return (
     <div className="pos-layout">
-      <AppControls />
+      <AppControls /> {/* Add the close button component */}
       <div className="pos-content">{content}</div>
       <div className="pos-sidebar">{sidebar}</div>
       {footer && <div className="pos-footer">{footer}</div>}

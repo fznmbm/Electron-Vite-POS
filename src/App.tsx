@@ -6,6 +6,7 @@ import Cart, { CartItem } from "./components/Cart/Cart";
 import CategoryTabs from "./components/Categories/CategoryTabs";
 import SearchBar from "./components/Search/SearchBar";
 import CheckoutModal from "./components/Checkout/CheckoutModal";
+import TopNavigation from "./components/Navigation/TopNavigation";
 
 // Sample data
 const sampleProducts: Product[] = [
@@ -32,6 +33,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState("home");
 
   // Filter products based on category and search query
   const filteredProducts = sampleProducts.filter((product) => {
@@ -108,21 +110,16 @@ function App() {
     alert(`Payment successful! Thank you for your purchase.`);
   };
 
-  // Render sidebar content (cart)
-  const sidebarContent = (
-    <Cart
-      items={cart}
-      onIncreaseQuantity={handleIncreaseQuantity}
-      onDecreaseQuantity={handleDecreaseQuantity}
-      onRemoveItem={handleRemoveItem}
-      onClearCart={handleClearCart}
-      onCheckout={handleCheckout}
-    />
-  );
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
+    // In a full implementation, you would use this to change views
+    console.log(`Navigating to ${page}`);
+  };
 
-  // Render main content (products)
+  // Main content with TopNavigation
   const mainContent = (
     <div className="products-container">
+      <TopNavigation onNavigate={handleNavigate} activePage={currentPage} />
       <SearchBar onSearch={setSearchQuery} />
       <CategoryTabs
         categories={categories}
@@ -134,6 +131,18 @@ function App() {
         onProductSelect={handleAddToCart}
       />
     </div>
+  );
+
+  // Render sidebar content (cart)
+  const sidebarContent = (
+    <Cart
+      items={cart}
+      onIncreaseQuantity={handleIncreaseQuantity}
+      onDecreaseQuantity={handleDecreaseQuantity}
+      onRemoveItem={handleRemoveItem}
+      onClearCart={handleClearCart}
+      onCheckout={handleCheckout}
+    />
   );
 
   return (
