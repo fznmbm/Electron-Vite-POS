@@ -16,6 +16,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   return (
     <div className="pos-layout">
+      <AppControls />
       <div className="pos-content">{content}</div>
       <div className="pos-sidebar">{sidebar}</div>
       {footer && <div className="pos-footer">{footer}</div>}
