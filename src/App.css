@@ -1,0 +1,10 @@
+.App {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.products-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
