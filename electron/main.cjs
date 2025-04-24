@@ -1,12 +1,13 @@
-import { app, BrowserWindow, ipcMain } from "electron";
-import { createRequire } from "node:module";
+import { app, BrowserWindow, ipcMain, globalShortcut } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { setupIPCHandlers } from "./ipc-handlers";
 import "./database"; // Import to initialize the database
+import { initializeDatabase } from "./db-initializer";
 
-const require = createRequire(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// For ES modules in Electron
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // The built directory structure
 //
@@ -20,20 +21,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
+const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
+const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, "public")
   : RENDERER_DIST;
 
-let win: BrowserWindow | null;
+let win = null;
 
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-
     width: 1920,
     height: 1080,
     fullscreen: true, // This makes the app launch in fullscreen mode
@@ -61,17 +61,17 @@ function createWindow() {
   });
 
   ipcMain.on("app:minimize", () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) win.minimize();
+    const activeWin = BrowserWindow.getFocusedWindow();
+    if (activeWin) activeWin.minimize();
   });
 
   ipcMain.on("app:maximize", () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) {
-      if (win.isMaximized()) {
-        win.unmaximize();
+    const activeWin = BrowserWindow.getFocusedWindow();
+    if (activeWin) {
+      if (activeWin.isMaximized()) {
+        activeWin.unmaximize();
       } else {
-        win.maximize();
+        activeWin.maximize();
       }
     }
   });
@@ -98,24 +98,28 @@ app.on("activate", () => {
   }
 });
 
-// Add this to your main process file
-const { globalShortcut } = require("electron");
-
 app.whenReady().then(() => {
-  createWindow();
+  try {
+    // Initialize database with default data
+    initializeDatabase();
 
-  // Register ESC key to exit fullscreen (but not close the app)
-  globalShortcut.register("ESC", () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win && win.isFullScreen()) {
-      win.setFullScreen(false);
-    }
-  });
+    createWindow();
 
-  // Register a shortcut to quit the app (e.g., Alt+F4 or Ctrl+Q)
-  globalShortcut.register("CommandOrControl+Q", () => {
-    app.quit();
-  });
+    // Register ESC key to exit fullscreen (but not close the app)
+    globalShortcut.register("ESC", () => {
+      const activeWin = BrowserWindow.getFocusedWindow();
+      if (activeWin && activeWin.isFullScreen()) {
+        activeWin.setFullScreen(false);
+      }
+    });
+
+    // Register a shortcut to quit the app (e.g., Alt+F4 or Ctrl+Q)
+    globalShortcut.register("CommandOrControl+Q", () => {
+      app.quit();
+    });
+  } catch (error) {
+    console.error("Error during app initialization:", error);
+  }
 });
 
 // Clean up shortcuts when app is quitting

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import MainLayout from "./components/Layout/MainLayout";
 import ProductGrid, { Product } from "./components/Products/ProductGrid";
@@ -7,43 +7,79 @@ import CategoryTabs from "./components/Categories/CategoryTabs";
 import SearchBar from "./components/Search/SearchBar";
 import CheckoutModal from "./components/Checkout/CheckoutModal";
 import TopNavigation from "./components/Navigation/TopNavigation";
+import SettingsPage from "./components/Settings/SettingsPage";
+import ProductManagement from "./components/Products/ProductManagement";
+import CategoryManagement from "./components/Settings/CategoryManagement";
+import OrdersPage from "./components/Orders/OrdersPage";
+import ReportsPage from "./components/Reports/ReportsPage";
+import BarcodeScanner from "./components/BarcodeScanner/BarcodeScanner";
 
-// Sample data
-const sampleProducts: Product[] = [
-  { id: 1, name: "Coffee", price: 3.5, category: "Drinks" },
-  { id: 2, name: "Tea", price: 2.5, category: "Drinks" },
-  { id: 3, name: "Sandwich", price: 5.99, category: "Food" },
-  { id: 4, name: "Salad", price: 4.75, category: "Food" },
-  { id: 5, name: "Cake", price: 3.25, category: "Desserts" },
-  { id: 6, name: "Muffin", price: 2.75, category: "Desserts" },
-  { id: 7, name: "Soda", price: 1.99, category: "Drinks" },
-  { id: 8, name: "Burger", price: 6.5, category: "Food" },
-  { id: 9, name: "Fries", price: 2.5, category: "Sides" },
-  { id: 10, name: "Ice Cream", price: 3.99, category: "Desserts" },
-  { id: 11, name: "Pizza Slice", price: 4.5, category: "Food" },
-  { id: 12, name: "Water Bottle", price: 1.5, category: "Drinks" },
-];
-
-const categories = [...new Set(sampleProducts.map((p) => p.category))].filter(
-  Boolean
-) as string[];
+// Import the database hooks
+import { useProducts, useCategories, useOrders } from "./hooks/useDatabase";
+import { useSettings } from "./hooks/useSettings";
 
 function App() {
+  // State for application
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("home");
 
-  // Filter products based on category and search query
-  const filteredProducts = sampleProducts.filter((product) => {
-    const matchesCategory =
-      selectedCategory === "all" || product.category === selectedCategory;
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Use the database hooks
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+    searchProducts,
+    getProductsByCategory,
+    fetchProducts,
+  } = useProducts();
+
+  const {
+    categories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
+  const { addOrder } = useOrders();
+
+  const { settings, loading: settingsLoading } = useSettings();
+
+  // Effect to fetch products when category changes
+  useEffect(() => {
+    if (selectedCategory === "all") {
+      fetchProducts();
+    } else {
+      // Find the category ID by name
+      const category = categories.find((c) => c.name === selectedCategory);
+      if (category?.id) {
+        getProductsByCategory(category.id);
+      }
+    }
+  }, [selectedCategory, categories, fetchProducts, getProductsByCategory]);
+
+  // Effect to search products when query changes
+  useEffect(() => {
+    if (searchQuery) {
+      searchProducts(searchQuery);
+    } else if (selectedCategory === "all") {
+      fetchProducts();
+    } else {
+      // If we have a category selected, maintain that filter
+      const category = categories.find((c) => c.name === selectedCategory);
+      if (category?.id) {
+        getProductsByCategory(category.id);
+      }
+    }
+  }, [
+    searchQuery,
+    selectedCategory,
+    categories,
+    searchProducts,
+    fetchProducts,
+    getProductsByCategory,
+  ]);
 
   // Cart functions
   const handleAddToCart = (product: Product) => {
@@ -98,40 +134,103 @@ function App() {
     setIsCheckoutModalOpen(true);
   };
 
-  const handleCompleteCheckout = (paymentMethod: string) => {
-    // In a real app, you would process the payment here
-    console.log(`Processing ${paymentMethod} payment for ${cart.length} items`);
+  const handleCompleteCheckout = async (
+    paymentMethod: string
+  ): Promise<number> => {
+    try {
+      // Calculate total and tax
+      const subtotal = cart.reduce((total, item) => {
+        return total + item.product.price * item.quantity;
+      }, 0);
 
-    // Clear the cart and close the modal
-    setCart([]);
-    setIsCheckoutModalOpen(false);
+      // Get tax rate from settings
+      const taxRate = settings?.taxEnabled ? settings.taxRate : 0;
+      const taxAmount = subtotal * (taxRate / 100);
 
-    // You might want to show a success message or print a receipt here
-    alert(`Payment successful! Thank you for your purchase.`);
+      // Create order object
+      const order = {
+        total: subtotal + taxAmount,
+        tax: taxAmount,
+        payment_method: paymentMethod,
+        items: cart.map((item) => ({
+          product_id: item.product.id || 0,
+          quantity: item.quantity,
+          price: item.product.price,
+        })),
+      };
+
+      // Add order to database
+      const orderId = await addOrder(order);
+      console.log(`Order #${orderId} created successfully`);
+
+      // Clear the cart
+      setCart([]);
+
+      // Return the order ID to show the receipt
+      return orderId;
+    } catch (error) {
+      console.error("Error processing checkout:", error);
+      throw new Error(
+        "There was an error processing your payment. Please try again."
+      );
+    }
   };
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
-    // In a full implementation, you would use this to change views
-    console.log(`Navigating to ${page}`);
   };
 
-  // Main content with TopNavigation
-  const mainContent = (
-    <div className="products-container">
-      <TopNavigation onNavigate={handleNavigate} activePage={currentPage} />
-      <SearchBar onSearch={setSearchQuery} />
-      <CategoryTabs
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-      />
-      <ProductGrid
-        products={filteredProducts}
-        onProductSelect={handleAddToCart}
-      />
-    </div>
-  );
+  // Get category names from the database
+  const categoryNames = categories.map((category) => category.name);
+
+  // Determine what content to show based on current page
+  let mainContent;
+
+  if (productsLoading || categoriesLoading) {
+    mainContent = <div className="loading-container">Loading...</div>;
+  } else if (productsError || categoriesError) {
+    mainContent = (
+      <div className="error-container">
+        Error loading data. Please try again.
+      </div>
+    );
+  } else {
+    switch (currentPage) {
+      case "home":
+        mainContent = (
+          <div className="products-container">
+            <SearchBar onSearch={setSearchQuery} />
+            <CategoryTabs
+              categories={categoryNames}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+            <ProductGrid
+              products={products}
+              onProductSelect={handleAddToCart}
+            />
+          </div>
+        );
+        break;
+      case "orders":
+        mainContent = <OrdersPage />;
+        break;
+      case "products":
+        mainContent = <ProductManagement />;
+        break;
+      case "categories":
+        mainContent = <CategoryManagement />;
+        break;
+      case "reports":
+        mainContent = <ReportsPage />;
+        break;
+      case "settings":
+        mainContent = <SettingsPage />;
+        break;
+      default:
+        mainContent = <div>Page not found</div>;
+    }
+  }
 
   // Render sidebar content (cart)
   const sidebarContent = (
@@ -145,9 +244,18 @@ function App() {
     />
   );
 
+  // Add footer with navigation
+  const footerContent = (
+    <TopNavigation onNavigate={handleNavigate} activePage={currentPage} />
+  );
+
   return (
     <div className="App">
-      <MainLayout sidebar={sidebarContent} content={mainContent} />
+      <MainLayout
+        sidebar={sidebarContent}
+        content={mainContent}
+        footer={footerContent}
+      />
 
       <CheckoutModal
         isOpen={isCheckoutModalOpen}
@@ -155,6 +263,11 @@ function App() {
         cartItems={cart}
         onCompleteCheckout={handleCompleteCheckout}
       />
+
+      {/* Add barcode scanner component */}
+      {currentPage === "home" && (
+        <BarcodeScanner onProductScanned={handleAddToCart} />
+      )}
     </div>
   );
 }

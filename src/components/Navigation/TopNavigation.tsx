@@ -18,21 +18,49 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
           onClick={() => onNavigate("home")}
         >
           <span className="nav-icon">🏠</span>
-          Home
+          <span className="nav-label">Home</span>
         </button>
+
         <button
           className={`nav-button ${activePage === "orders" ? "active" : ""}`}
           onClick={() => onNavigate("orders")}
         >
           <span className="nav-icon">📋</span>
-          Past Orders
+          <span className="nav-label">Orders</span>
         </button>
+
+        <button
+          className={`nav-button ${activePage === "products" ? "active" : ""}`}
+          onClick={() => onNavigate("products")}
+        >
+          <span className="nav-icon">📦</span>
+          <span className="nav-label">Products</span>
+        </button>
+
+        <button
+          className={`nav-button ${
+            activePage === "categories" ? "active" : ""
+          }`}
+          onClick={() => onNavigate("categories")}
+        >
+          <span className="nav-icon">🏷️</span>
+          <span className="nav-label">Categories</span>
+        </button>
+
+        <button
+          className={`nav-button ${activePage === "reports" ? "active" : ""}`}
+          onClick={() => onNavigate("reports")}
+        >
+          <span className="nav-icon">📊</span>
+          <span className="nav-label">Reports</span>
+        </button>
+
         <button
           className={`nav-button ${activePage === "settings" ? "active" : ""}`}
           onClick={() => onNavigate("settings")}
         >
           <span className="nav-icon">⚙️</span>
-          Settings
+          <span className="nav-label">Settings</span>
         </button>
       </div>
     </div>

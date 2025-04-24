@@ -124,3 +124,26 @@
   font-weight: 500;
   cursor: pointer;
 }
+
+.complete-button:hover {
+  background-color: #388e3c;
+}
+
+.complete-button.processing {
+  background-color: #8bc34a;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.modal-body {
+  position: relative;
+}
+
+.summary-subtotal,
+.summary-tax {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-top: 1px solid #f0f0f0;
+  color: #666;
+}

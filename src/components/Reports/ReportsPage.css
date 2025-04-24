@@ -1,0 +1,239 @@
+.reports-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.reports-page h2 {
+  margin-bottom: 24px;
+  color: #2a5885;
+}
+
+.time-range-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.time-range-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-range-button:hover {
+  background-color: #e0e0e0;
+}
+
+.time-range-button.active {
+  background-color: #2a5885;
+  color: white;
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.report-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.report-card h3 {
+  margin: 0;
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #eee;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #757575;
+  font-style: italic;
+}
+
+/* Top Selling Products */
+.product-ranking {
+  padding: 12px;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ranking-item:last-child {
+  border-bottom: none;
+}
+
+.ranking-position {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a5885;
+  color: white;
+  border-radius: 50%;
+  margin-right: 12px;
+  font-weight: bold;
+}
+
+.ranking-content {
+  flex: 1;
+}
+
+.ranking-name {
+  font-weight: 500;
+}
+
+.ranking-quantity {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Daily Sales */
+.daily-sales {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.daily-sales-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 12px 16px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+}
+
+.daily-sales-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.daily-sales-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.daily-sales-item:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.sales-total {
+  font-weight: 500;
+  color: #2a5885;
+}
+
+.daily-sales-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #eee;
+  font-weight: 600;
+}
+
+/* Category Sales */
+.category-sales {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.category-sales-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 12px 16px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+}
+
+.category-sales-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.category-sales-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.category-sales-item:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.category-name {
+  font-weight: 500;
+}
+
+.category-total {
+  font-weight: 500;
+  color: #2a5885;
+}
+
+.category-sales-summary {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #eee;
+  font-weight: 600;
+}
+
+.error-message {
+  margin-top: 24px;
+  padding: 12px 16px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-radius: 4px;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .time-range-selector {
+    flex-wrap: wrap;
+  }
+
+  .time-range-button {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+}

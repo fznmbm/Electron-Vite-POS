@@ -40,19 +40,19 @@ export interface OrderItem {
 
 // Database class to manage all operations
 class DatabaseService {
-  private db: Database.Database;
+  private db: Database.Database | null = null;
   private initialized: boolean = false;
+  private dbPath: string;
 
   constructor() {
     const userDataPath = app.getPath("userData");
-    const dbPath = path.join(userDataPath, "pos-database.db");
+    this.dbPath = path.join(userDataPath, "pos-database.db");
 
     // Ensure the directory exists
     if (!fs.existsSync(userDataPath)) {
       fs.mkdirSync(userDataPath, { recursive: true });
     }
 
-    this.db = new Database(dbPath);
     this.init();
   }
 
@@ -60,65 +60,83 @@ class DatabaseService {
   private init() {
     if (this.initialized) return;
 
-    // Set pragmas for better performance
-    this.db.pragma("journal_mode = WAL");
+    try {
+      this.db = new Database(this.dbPath);
 
-    // Create tables if they don't exist
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        display_order INTEGER DEFAULT 0
-      );
+      // Set pragmas for better performance
+      this.db.pragma("journal_mode = WAL");
 
-      CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        price REAL NOT NULL,
-        category_id INTEGER,
-        barcode TEXT,
-        image TEXT,
-        FOREIGN KEY (category_id) REFERENCES categories (id)
-      );
+      // Create tables if they don't exist
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          display_order INTEGER DEFAULT 0
+        );
 
-      CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        total REAL NOT NULL,
-        tax REAL NOT NULL,
-        payment_method TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+        CREATE TABLE IF NOT EXISTS products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          price REAL NOT NULL,
+          category_id INTEGER,
+          barcode TEXT,
+          image TEXT,
+          FOREIGN KEY (category_id) REFERENCES categories (id)
+        );
 
-      CREATE TABLE IF NOT EXISTS order_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL,
-        price REAL NOT NULL,
-        FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES products (id)
-      );
-    `);
+        CREATE TABLE IF NOT EXISTS orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          total REAL NOT NULL,
+          tax REAL NOT NULL,
+          payment_method TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-    this.initialized = true;
-    console.log("Database initialized successfully");
+        CREATE TABLE IF NOT EXISTS order_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL,
+          price REAL NOT NULL,
+          FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+          FOREIGN KEY (product_id) REFERENCES products (id)
+        );
+      `);
+
+      this.initialized = true;
+      console.log("Database initialized successfully");
+    } catch (error) {
+      console.error("Error initializing database:", error);
+    }
+  }
+
+  // Ensure database connection is available
+  private ensureConnection() {
+    if (!this.db) {
+      this.db = new Database(this.dbPath);
+      this.db.pragma("journal_mode = WAL");
+    }
+    return this.db;
   }
 
   // Category methods
   getCategories(): Category[] {
-    const stmt = this.db.prepare(
+    const db = this.ensureConnection();
+    const stmt = db.prepare(
       "SELECT * FROM categories ORDER BY display_order, name"
     );
     return stmt.all();
   }
 
   getCategoryById(id: number): Category | undefined {
-    const stmt = this.db.prepare("SELECT * FROM categories WHERE id = ?");
+    const db = this.ensureConnection();
+    const stmt = db.prepare("SELECT * FROM categories WHERE id = ?");
     return stmt.get(id);
   }
 
   addCategory(category: Category): number {
-    const stmt = this.db.prepare(
+    const db = this.ensureConnection();
+    const stmt = db.prepare(
       "INSERT INTO categories (name, display_order) VALUES (?, ?)"
     );
     const result = stmt.run(category.name, category.display_order);
@@ -126,7 +144,8 @@ class DatabaseService {
   }
 
   updateCategory(category: Category): boolean {
-    const stmt = this.db.prepare(
+    const db = this.ensureConnection();
+    const stmt = db.prepare(
       "UPDATE categories SET name = ?, display_order = ? WHERE id = ?"
     );
     const result = stmt.run(category.name, category.display_order, category.id);
@@ -134,14 +153,16 @@ class DatabaseService {
   }
 
   deleteCategory(id: number): boolean {
-    const stmt = this.db.prepare("DELETE FROM categories WHERE id = ?");
+    const db = this.ensureConnection();
+    const stmt = db.prepare("DELETE FROM categories WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   // Product methods
   getProducts(): Product[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT p.*, c.name as category 
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
@@ -151,7 +172,8 @@ class DatabaseService {
   }
 
   getProductsByCategory(categoryId: number): Product[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT p.*, c.name as category 
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
@@ -162,7 +184,8 @@ class DatabaseService {
   }
 
   searchProducts(query: string): Product[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT p.*, c.name as category 
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
@@ -174,7 +197,8 @@ class DatabaseService {
   }
 
   getProductById(id: number): Product | undefined {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT p.*, c.name as category 
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
@@ -184,7 +208,8 @@ class DatabaseService {
   }
 
   addProduct(product: Product): number {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       INSERT INTO products (name, price, category_id, barcode, image) 
       VALUES (?, ?, ?, ?, ?)
     `);
@@ -199,7 +224,8 @@ class DatabaseService {
   }
 
   updateProduct(product: Product): boolean {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       UPDATE products 
       SET name = ?, price = ?, category_id = ?, barcode = ?, image = ?
       WHERE id = ?
@@ -216,14 +242,16 @@ class DatabaseService {
   }
 
   deleteProduct(id: number): boolean {
-    const stmt = this.db.prepare("DELETE FROM products WHERE id = ?");
+    const db = this.ensureConnection();
+    const stmt = db.prepare("DELETE FROM products WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   // Order methods
   getOrders(): Order[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT * FROM orders
       ORDER BY created_at DESC
     `);
@@ -231,11 +259,12 @@ class DatabaseService {
   }
 
   getOrderById(id: number): Order | undefined {
-    const stmt = this.db.prepare("SELECT * FROM orders WHERE id = ?");
+    const db = this.ensureConnection();
+    const stmt = db.prepare("SELECT * FROM orders WHERE id = ?");
     const order = stmt.get(id) as Order | undefined;
 
     if (order) {
-      const itemsStmt = this.db.prepare(`
+      const itemsStmt = db.prepare(`
         SELECT oi.*, p.name as product_name
         FROM order_items oi
         JOIN products p ON oi.product_id = p.id
@@ -248,10 +277,11 @@ class DatabaseService {
   }
 
   addOrder(order: Order): number {
+    const db = this.ensureConnection();
     // Begin transaction
-    const transaction = this.db.transaction((order: Order) => {
+    const transaction = db.transaction((order: Order) => {
       // Insert order
-      const orderStmt = this.db.prepare(`
+      const orderStmt = db.prepare(`
         INSERT INTO orders (total, tax, payment_method) 
         VALUES (?, ?, ?)
       `);
@@ -264,7 +294,7 @@ class DatabaseService {
 
       // Insert order items
       if (order.items && order.items.length > 0) {
-        const itemStmt = this.db.prepare(`
+        const itemStmt = db.prepare(`
           INSERT INTO order_items (order_id, product_id, quantity, price) 
           VALUES (?, ?, ?, ?)
         `);
@@ -282,7 +312,8 @@ class DatabaseService {
   }
 
   getOrdersByDateRange(startDate: string, endDate: string): Order[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT * FROM orders
       WHERE created_at BETWEEN ? AND ?
       ORDER BY created_at DESC
@@ -291,14 +322,16 @@ class DatabaseService {
   }
 
   deleteOrder(id: number): boolean {
-    const stmt = this.db.prepare("DELETE FROM orders WHERE id = ?");
+    const db = this.ensureConnection();
+    const stmt = db.prepare("DELETE FROM orders WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   // Utility methods for reports and statistics
   getTopSellingProducts(limit: number = 10): any[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT p.id, p.name, SUM(oi.quantity) as total_quantity
       FROM order_items oi
       JOIN products p ON oi.product_id = p.id
@@ -310,7 +343,8 @@ class DatabaseService {
   }
 
   getDailySales(days: number = 30): any[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT 
         date(created_at) as date, 
         SUM(total) as total_sales,
@@ -324,7 +358,8 @@ class DatabaseService {
   }
 
   getSalesByCategory(): any[] {
-    const stmt = this.db.prepare(`
+    const db = this.ensureConnection();
+    const stmt = db.prepare(`
       SELECT 
         c.name as category, 
         SUM(oi.quantity * oi.price) as total_sales
@@ -339,7 +374,10 @@ class DatabaseService {
 
   // Close the database connection
   close() {
-    this.db.close();
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
   }
 }
 

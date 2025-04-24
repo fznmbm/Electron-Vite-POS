@@ -1,0 +1,140 @@
+.barcode-scanner {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 900;
+}
+
+.toggle-scanner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #2a5885;
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.toggle-scanner:hover {
+  background-color: #1e4b7b;
+  transform: scale(1.05);
+}
+
+.scanner-icon {
+  font-size: 24px;
+}
+
+.scanner-panel {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+  width: 300px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  animation: slideUp 0.3s ease;
+  transform-origin: bottom left;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.scanner-panel h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.scanner-form {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.scanner-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px 0 0 4px;
+  font-size: 1rem;
+}
+
+.scanner-input:focus {
+  outline: none;
+  border-color: #2a5885;
+}
+
+.scan-button {
+  padding: 0 16px;
+  background-color: #2a5885;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+}
+
+.scan-button:hover {
+  background-color: #1e4b7b;
+}
+
+.scanner-message {
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scanner-message.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.scanner-message.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.scanner-instructions {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .barcode-scanner {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .scanner-panel {
+    width: calc(100vw - 32px);
+    max-width: 300px;
+  }
+}
