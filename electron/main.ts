@@ -4,8 +4,10 @@ import path from "path";
 import { setupIPCHandlers } from "./ipc-handlers";
 // We'll use a different approach for database initialization
 // to avoid ES module imports
+import database from "./database";
+
 //
-const database = require(path.join(__dirname, "mock-database.js"));
+//const database = require(path.join(__dirname, "database.ts"));
 
 // Use standard Node.js path functions (avoid ES Module-specific functions)
 const isDevelopment = process.env.NODE_ENV !== "production";

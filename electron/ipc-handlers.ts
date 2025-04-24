@@ -1,13 +1,11 @@
 import { ipcMain } from "electron";
-//import databaseService from "./database";
-const databaseService = require("./mock-database");
+import databaseService from "./database";
 import settingsService from "./settings";
 
 // Set up all IPC handlers for database operations
 export function setupIPCHandlers() {
   try {
     // Category handlers
-
     console.log("Setting up IPC handlers...");
 
     ipcMain.handle("db:getCategories", async () => {

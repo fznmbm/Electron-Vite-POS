@@ -1,9 +1,9 @@
 import { app } from "electron";
-import sqlite3 from "sqlite3";
-import path from "path";
-import fs from "fs";
+import * as sqlite3 from "sqlite3";
+import * as path from "path";
+import * as fs from "fs";
 
-// Types for our database entities
+// Define types for database entities
 export interface Product {
   id?: number;
   name: string;
@@ -11,7 +11,7 @@ export interface Product {
   category_id: number;
   barcode?: string;
   image?: string;
-  category?: string; // For joining with categories
+  category?: string;
 }
 
 export interface Category {
@@ -35,13 +35,12 @@ export interface OrderItem {
   product_id: number;
   quantity: number;
   price: number;
-  product_name?: string; // For joining with products
+  product_name?: string;
 }
 
 // Database class to manage all operations
 class DatabaseService {
-  private db: Database.Database | null = null;
-  private initialized: boolean = false;
+  private db: sqlite3.Database | null = null;
   private dbPath: string;
 
   constructor() {
@@ -58,324 +57,658 @@ class DatabaseService {
 
   // Initialize the database schema
   private init() {
-    if (this.initialized) return;
-
     try {
-      this.db = new Database(this.dbPath);
+      this.db = new sqlite3.Database(this.dbPath, (err) => {
+        if (err) {
+          console.error("Error opening database:", err);
+          return;
+        }
 
-      // Set pragmas for better performance
-      this.db.pragma("journal_mode = WAL");
-
-      // Create tables if they don't exist
-      this.db.exec(`
-        CREATE TABLE IF NOT EXISTS categories (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL UNIQUE,
-          display_order INTEGER DEFAULT 0
-        );
-
-        CREATE TABLE IF NOT EXISTS products (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          price REAL NOT NULL,
-          category_id INTEGER,
-          barcode TEXT,
-          image TEXT,
-          FOREIGN KEY (category_id) REFERENCES categories (id)
-        );
-
-        CREATE TABLE IF NOT EXISTS orders (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          total REAL NOT NULL,
-          tax REAL NOT NULL,
-          payment_method TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS order_items (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          order_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          quantity INTEGER NOT NULL,
-          price REAL NOT NULL,
-          FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products (id)
-        );
-      `);
-
-      this.initialized = true;
-      console.log("Database initialized successfully");
+        console.log("Database connection established");
+        this.createTables();
+      });
     } catch (error) {
       console.error("Error initializing database:", error);
     }
   }
 
-  // Ensure database connection is available
-  private ensureConnection() {
-    if (!this.db) {
-      this.db = new Database(this.dbPath);
-      this.db.pragma("journal_mode = WAL");
-    }
-    return this.db;
+  private createTables() {
+    const sql = `
+      CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        display_order INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        category_id INTEGER,
+        barcode TEXT,
+        image TEXT,
+        FOREIGN KEY (category_id) REFERENCES categories (id)
+      );
+
+      CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        tax REAL NOT NULL,
+        payment_method TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products (id)
+      );
+    `;
+
+    this.db?.exec(sql, (err) => {
+      if (err) {
+        console.error("Error creating tables:", err);
+      } else {
+        console.log("Database tables created successfully");
+        this.initSampleData();
+      }
+    });
+  }
+
+  // Initialize sample data if database is empty
+  private initSampleData() {
+    if (!this.db) return;
+
+    // Check if categories table is empty
+    this.db.get("SELECT COUNT(*) as count FROM categories", (err, row: any) => {
+      if (err) {
+        console.error("Error checking categories:", err);
+        return;
+      }
+
+      if (row && row.count === 0) {
+        console.log("Adding sample data...");
+        this.addSampleCategories();
+      }
+    });
+  }
+
+  private addSampleCategories() {
+    if (!this.db) return;
+
+    const categories = [
+      { name: "Drinks", display_order: 1 },
+      { name: "Food", display_order: 2 },
+      { name: "Desserts", display_order: 3 },
+      { name: "Sides", display_order: 4 },
+    ];
+
+    const stmt = this.db.prepare(
+      "INSERT INTO categories (name, display_order) VALUES (?, ?)"
+    );
+
+    categories.forEach((cat) => {
+      stmt.run(cat.name, cat.display_order);
+    });
+
+    stmt.finalize(() => {
+      console.log("Sample categories added");
+      this.addSampleProducts();
+    });
+  }
+
+  private addSampleProducts() {
+    if (!this.db) return;
+
+    const products = [
+      { name: "Coffee", price: 3.5, category_id: 1, barcode: "123456789" },
+      { name: "Tea", price: 2.5, category_id: 1, barcode: "223456789" },
+      { name: "Water", price: 1.5, category_id: 1, barcode: "323456789" },
+      { name: "Sandwich", price: 5.99, category_id: 2, barcode: "523456789" },
+      { name: "Cake", price: 3.25, category_id: 3, barcode: "823456789" },
+      { name: "Fries", price: 2.5, category_id: 4, barcode: "113456789" },
+    ];
+
+    const stmt = this.db.prepare(
+      "INSERT INTO products (name, price, category_id, barcode) VALUES (?, ?, ?, ?)"
+    );
+
+    products.forEach((prod) => {
+      stmt.run(prod.name, prod.price, prod.category_id, prod.barcode);
+    });
+
+    stmt.finalize(() => {
+      console.log("Sample products added");
+    });
   }
 
   // Category methods
-  getCategories(): Category[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(
-      "SELECT * FROM categories ORDER BY display_order, name"
-    );
-    return stmt.all();
+  getCategories(): Promise<Category[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        "SELECT * FROM categories ORDER BY display_order, name",
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  getCategoryById(id: number): Category | undefined {
-    const db = this.ensureConnection();
-    const stmt = db.prepare("SELECT * FROM categories WHERE id = ?");
-    return stmt.get(id);
+  getCategoryById(id: number): Promise<Category | undefined> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.get("SELECT * FROM categories WHERE id = ?", [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
   }
 
-  addCategory(category: Category): number {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(
-      "INSERT INTO categories (name, display_order) VALUES (?, ?)"
-    );
-    const result = stmt.run(category.name, category.display_order);
-    return result.lastInsertRowid as number;
+  addCategory(category: Category): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run(
+        "INSERT INTO categories (name, display_order) VALUES (?, ?)",
+        [category.name, category.display_order || 0],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   }
 
-  updateCategory(category: Category): boolean {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(
-      "UPDATE categories SET name = ?, display_order = ? WHERE id = ?"
-    );
-    const result = stmt.run(category.name, category.display_order, category.id);
-    return result.changes > 0;
+  updateCategory(category: Category): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db || !category.id) {
+        reject(new Error("Database not initialized or invalid category ID"));
+        return;
+      }
+
+      this.db.run(
+        "UPDATE categories SET name = ?, display_order = ? WHERE id = ?",
+        [category.name, category.display_order || 0, category.id],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.changes > 0);
+        }
+      );
+    });
   }
 
-  deleteCategory(id: number): boolean {
-    const db = this.ensureConnection();
-    const stmt = db.prepare("DELETE FROM categories WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+  deleteCategory(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run("DELETE FROM categories WHERE id = ?", [id], function (err) {
+        if (err) reject(err);
+        else resolve(this.changes > 0);
+      });
+    });
   }
 
   // Product methods
-  getProducts(): Product[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT p.*, c.name as category 
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      ORDER BY p.name
-    `);
-    return stmt.all();
+  getProducts(): Promise<Product[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT p.*, c.name as category 
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        ORDER BY p.name
+      `,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  getProductsByCategory(categoryId: number): Product[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT p.*, c.name as category 
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.category_id = ?
-      ORDER BY p.name
-    `);
-    return stmt.all(categoryId);
+  getProductsByCategory(categoryId: number): Promise<Product[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT p.*, c.name as category 
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.category_id = ?
+        ORDER BY p.name
+      `,
+        [categoryId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  searchProducts(query: string): Product[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT p.*, c.name as category 
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.name LIKE ? OR p.barcode LIKE ?
-      ORDER BY p.name
-    `);
-    const searchQuery = `%${query}%`;
-    return stmt.all(searchQuery, searchQuery);
+  searchProducts(query: string): Promise<Product[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const searchTerm = `%${query}%`;
+      this.db.all(
+        `
+        SELECT p.*, c.name as category 
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.name LIKE ? OR p.barcode LIKE ?
+        ORDER BY p.name
+      `,
+        [searchTerm, searchTerm],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  getProductById(id: number): Product | undefined {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT p.*, c.name as category 
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.id = ?
-    `);
-    return stmt.get(id);
+  getProductById(id: number): Promise<Product | undefined> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.get(
+        `
+        SELECT p.*, c.name as category 
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.id = ?
+      `,
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
-  addProduct(product: Product): number {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      INSERT INTO products (name, price, category_id, barcode, image) 
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      product.name,
-      product.price,
-      product.category_id,
-      product.barcode || null,
-      product.image || null
-    );
-    return result.lastInsertRowid as number;
+  addProduct(product: Product): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run(
+        `
+        INSERT INTO products (name, price, category_id, barcode, image) 
+        VALUES (?, ?, ?, ?, ?)
+      `,
+        [
+          product.name,
+          product.price,
+          product.category_id,
+          product.barcode || null,
+          product.image || null,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   }
 
-  updateProduct(product: Product): boolean {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      UPDATE products 
-      SET name = ?, price = ?, category_id = ?, barcode = ?, image = ?
-      WHERE id = ?
-    `);
-    const result = stmt.run(
-      product.name,
-      product.price,
-      product.category_id,
-      product.barcode || null,
-      product.image || null,
-      product.id
-    );
-    return result.changes > 0;
+  updateProduct(product: Product): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db || !product.id) {
+        reject(new Error("Database not initialized or invalid product ID"));
+        return;
+      }
+
+      this.db.run(
+        `
+        UPDATE products 
+        SET name = ?, price = ?, category_id = ?, barcode = ?, image = ?
+        WHERE id = ?
+      `,
+        [
+          product.name,
+          product.price,
+          product.category_id,
+          product.barcode || null,
+          product.image || null,
+          product.id,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.changes > 0);
+        }
+      );
+    });
   }
 
-  deleteProduct(id: number): boolean {
-    const db = this.ensureConnection();
-    const stmt = db.prepare("DELETE FROM products WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+  deleteProduct(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run("DELETE FROM products WHERE id = ?", [id], function (err) {
+        if (err) reject(err);
+        else resolve(this.changes > 0);
+      });
+    });
   }
 
   // Order methods
-  getOrders(): Order[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT * FROM orders
-      ORDER BY created_at DESC
-    `);
-    return stmt.all();
-  }
-
-  getOrderById(id: number): Order | undefined {
-    const db = this.ensureConnection();
-    const stmt = db.prepare("SELECT * FROM orders WHERE id = ?");
-    const order = stmt.get(id) as Order | undefined;
-
-    if (order) {
-      const itemsStmt = db.prepare(`
-        SELECT oi.*, p.name as product_name
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        WHERE oi.order_id = ?
-      `);
-      order.items = itemsStmt.all(id);
-    }
-
-    return order;
-  }
-
-  addOrder(order: Order): number {
-    const db = this.ensureConnection();
-    // Begin transaction
-    const transaction = db.transaction((order: Order) => {
-      // Insert order
-      const orderStmt = db.prepare(`
-        INSERT INTO orders (total, tax, payment_method) 
-        VALUES (?, ?, ?)
-      `);
-      const orderResult = orderStmt.run(
-        order.total,
-        order.tax,
-        order.payment_method
-      );
-      const orderId = orderResult.lastInsertRowid as number;
-
-      // Insert order items
-      if (order.items && order.items.length > 0) {
-        const itemStmt = db.prepare(`
-          INSERT INTO order_items (order_id, product_id, quantity, price) 
-          VALUES (?, ?, ?, ?)
-        `);
-
-        for (const item of order.items) {
-          itemStmt.run(orderId, item.product_id, item.quantity, item.price);
-        }
+  getOrders(): Promise<Order[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
       }
 
-      return orderId;
+      this.db.all(
+        `
+        SELECT * FROM orders
+        ORDER BY created_at DESC
+      `,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
     });
-
-    // Execute transaction
-    return transaction(order);
   }
 
-  getOrdersByDateRange(startDate: string, endDate: string): Order[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT * FROM orders
-      WHERE created_at BETWEEN ? AND ?
-      ORDER BY created_at DESC
-    `);
-    return stmt.all(startDate, endDate);
+  getOrderById(id: number): Promise<Order | undefined> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.get("SELECT * FROM orders WHERE id = ?", [id], (err, order) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!order) {
+          resolve(undefined);
+          return;
+        }
+
+        // Get order items
+        this.db.all(
+          `
+            SELECT oi.*, p.name as product_name
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ?
+          `,
+          [id],
+          (err, items) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            const result = {
+              ...order,
+              items: items || [],
+            };
+
+            resolve(result);
+          }
+        );
+      });
+    });
   }
 
-  deleteOrder(id: number): boolean {
-    const db = this.ensureConnection();
-    const stmt = db.prepare("DELETE FROM orders WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+  addOrder(order: Order): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const db = this.db; // Store reference to this.db to use in nested functions
+
+      // Begin transaction
+      db.run("BEGIN TRANSACTION", (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        // Insert the order
+        db.run(
+          "INSERT INTO orders (total, tax, payment_method) VALUES (?, ?, ?)",
+          [order.total, order.tax, order.payment_method],
+          function (err) {
+            if (err) {
+              // Rollback on error
+              db.run("ROLLBACK", () => {
+                reject(err);
+              });
+              return;
+            }
+
+            const orderId = this.lastID;
+
+            // If there are no items, commit and return
+            if (!order.items || order.items.length === 0) {
+              db.run("COMMIT", (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(orderId);
+                }
+              });
+              return;
+            }
+
+            // Prepare a statement for inserting items
+            let completed = 0;
+            let hasError = false;
+            const itemCount = order.items.length;
+
+            // Function to check if all items are processed
+            const checkComplete = () => {
+              if (completed === itemCount) {
+                if (hasError) {
+                  db.run("ROLLBACK", () => {
+                    reject(new Error("Error adding order items"));
+                  });
+                } else {
+                  db.run("COMMIT", (err) => {
+                    if (err) {
+                      reject(err);
+                    } else {
+                      resolve(orderId);
+                    }
+                  });
+                }
+              }
+            };
+
+            // Insert each order item
+            order.items.forEach((item) => {
+              db.run(
+                "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+                [orderId, item.product_id, item.quantity, item.price],
+                (err) => {
+                  completed++;
+                  if (err) {
+                    console.error("Error adding order item:", err);
+                    hasError = true;
+                  }
+                  checkComplete();
+                }
+              );
+            });
+          }
+        );
+      });
+    });
+  }
+
+  getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT * FROM orders
+        WHERE created_at BETWEEN ? AND ?
+        ORDER BY created_at DESC
+      `,
+        [startDate, endDate],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  deleteOrder(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run("DELETE FROM orders WHERE id = ?", [id], function (err) {
+        if (err) reject(err);
+        else resolve(this.changes > 0);
+      });
+    });
   }
 
   // Utility methods for reports and statistics
-  getTopSellingProducts(limit: number = 10): any[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT p.id, p.name, SUM(oi.quantity) as total_quantity
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      GROUP BY p.id
-      ORDER BY total_quantity DESC
-      LIMIT ?
-    `);
-    return stmt.all(limit);
+  getTopSellingProducts(limit: number = 10): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT p.id, p.name, SUM(oi.quantity) as total_quantity
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        GROUP BY p.id
+        ORDER BY total_quantity DESC
+        LIMIT ?
+      `,
+        [limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  getDailySales(days: number = 30): any[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT 
-        date(created_at) as date, 
-        SUM(total) as total_sales,
-        COUNT(*) as order_count
-      FROM orders
-      WHERE created_at >= date('now', '-' || ? || ' days')
-      GROUP BY date(created_at)
-      ORDER BY date(created_at)
-    `);
-    return stmt.all(days);
+  getDailySales(days: number = 30): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT 
+          date(created_at) as date, 
+          SUM(total) as total_sales,
+          COUNT(*) as order_count
+        FROM orders
+        WHERE created_at >= date('now', '-' || ? || ' days')
+        GROUP BY date(created_at)
+        ORDER BY date(created_at)
+      `,
+        [days],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
-  getSalesByCategory(): any[] {
-    const db = this.ensureConnection();
-    const stmt = db.prepare(`
-      SELECT 
-        c.name as category, 
-        SUM(oi.quantity * oi.price) as total_sales
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      JOIN categories c ON p.category_id = c.id
-      GROUP BY c.id
-      ORDER BY total_sales DESC
-    `);
-    return stmt.all();
+  getSalesByCategory(): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all(
+        `
+        SELECT 
+          c.name as category, 
+          SUM(oi.quantity * oi.price) as total_sales
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN categories c ON p.category_id = c.id
+        GROUP BY c.id
+        ORDER BY total_sales DESC
+      `,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
   }
 
   // Close the database connection
   close() {
     if (this.db) {
-      this.db.close();
+      this.db.close((err) => {
+        if (err) console.error("Error closing database:", err);
+        else console.log("Database connection closed");
+      });
       this.db = null;
     }
   }
