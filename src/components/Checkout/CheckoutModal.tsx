@@ -21,6 +21,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [processing, setProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  // Add this line to store cart items for the receipt
+  const [receiptItems, setReceiptItems] = useState<CartItem[]>([]);
+  const [receiptSubtotal, setReceiptSubtotal] = useState(0);
+  const [receiptTax, setReceiptTax] = useState(0);
+  const [receiptTotal, setReceiptTotal] = useState(0);
 
   const { settings } = useSettings();
 
@@ -47,6 +52,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     try {
       setProcessing(true);
+
+      // Store the current values for the receipt before they might be cleared
+      const subtotal = calculateSubtotal();
+      const tax = calculateTax();
+      const total = calculateTotal();
+
+      // Save a copy of the cart items for the receipt
+      setReceiptItems([...cartItems]);
+      setReceiptSubtotal(subtotal);
+      setReceiptTax(tax);
+      setReceiptTotal(total);
+
       // Call the onCompleteCheckout function which will add the order to the database
       const newOrderId = await onCompleteCheckout(paymentMethod);
 
@@ -68,16 +85,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     onClose();
   };
 
-  // If showing receipt, render the Receipt component
+  // If showing receipt, render the Receipt component with the saved items
   if (showReceipt && orderNumber !== null) {
     return (
       <Receipt
         orderNumber={orderNumber}
-        items={cartItems}
+        items={receiptItems} // Use the saved items
         paymentMethod={paymentMethod}
-        subtotal={calculateSubtotal()}
-        tax={calculateTax()}
-        total={calculateTotal()}
+        subtotal={receiptSubtotal} // Use the saved subtotal
+        tax={receiptTax} // Use the saved tax
+        total={receiptTotal} // Use the saved total
         onPrint={() => console.log("Printing receipt...")}
         onClose={handleCloseReceipt}
       />

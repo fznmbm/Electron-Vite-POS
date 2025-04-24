@@ -241,6 +241,9 @@ function App() {
       onRemoveItem={handleRemoveItem}
       onClearCart={handleClearCart}
       onCheckout={handleCheckout}
+      onClose={() => {
+        /* Function to close the cart panel if needed */
+      }}
     />
   );
 
