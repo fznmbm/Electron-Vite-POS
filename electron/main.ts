@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { setupIPCHandlers } from "./ipc-handlers";
+import "./database"; // Import to initialize the database
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,6 +39,8 @@ function createWindow() {
     fullscreen: true, // This makes the app launch in fullscreen mode
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 
@@ -48,11 +52,10 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
 
-  // Handle IPC messages
+  // Handle IPC messages for window controls
   ipcMain.on("app:close", () => {
     app.quit();
   });
@@ -72,6 +75,9 @@ function createWindow() {
       }
     }
   });
+
+  // Set up database and settings IPC handlers
+  setupIPCHandlers();
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
