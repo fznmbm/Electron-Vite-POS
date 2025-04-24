@@ -1,7 +1,7 @@
 import { app } from "electron";
-import Database from "better-sqlite3";
-import path from "node:path";
-import fs from "node:fs";
+import sqlite3 from "sqlite3";
+import path from "path";
+import fs from "fs";
 
 // Types for our database entities
 export interface Product {

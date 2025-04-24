@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import electron from "vite-plugin-electron";
 import renderer from "vite-plugin-electron-renderer";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 export default defineConfig({
   plugins: [
@@ -20,7 +21,7 @@ export default defineConfig({
                 "better-sqlite3",
               ],
               output: {
-                format: "cjs", // Ensure CommonJS output format
+                format: "cjs", // Ensure CommonJS output format for Electron
               },
             },
           },
@@ -31,10 +32,20 @@ export default defineConfig({
         vite: {
           build: {
             outDir: "dist-electron",
+            rollupOptions: {
+              output: {
+                format: "cjs", // Ensure CommonJS for preload too
+              },
+            },
           },
         },
       },
     ]),
     renderer(),
   ],
+  resolve: {
+    alias: {
+      "@": resolve(__dirname, "src"),
+    },
+  },
 });
