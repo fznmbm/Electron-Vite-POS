@@ -3,6 +3,7 @@ import { useOrders } from "../../hooks/useDatabase";
 import { useSettings } from "../../hooks/useSettings";
 import { Order } from "../../../electron/database";
 import "./OrdersPage.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 const OrdersPage: React.FC = () => {
   const {
@@ -16,12 +17,13 @@ const OrdersPage: React.FC = () => {
   } = useOrders();
 
   const { settings } = useSettings();
+  const { format } = useCurrencyFormatter();
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({
-    start: new Date(new Date().setDate(new Date().getDate() - 30))
-      .toISOString()
-      .split("T")[0], // 30 days ago
+    //start: new Date(new Date().setDate(new Date().getDate() - 30))
+    start: new Date().toISOString().split("T")[0], // today
+
     end: new Date().toISOString().split("T")[0], // today
   });
 
@@ -157,8 +159,8 @@ const OrdersPage: React.FC = () => {
                   </div>
                   <div className="order-details">
                     <div className="order-amount">
-                      {settings?.currencySymbol || "$"}
-                      {order.total.toFixed(2)}
+                      {/*   {settings?.currencySymbol || "$"} */}
+                      {format(order.total)}
                     </div>
                     <div className="order-payment-method">
                       {order.payment_method}
@@ -216,14 +218,8 @@ const OrdersPage: React.FC = () => {
                         <tr key={item.id}>
                           <td>{item.product_name}</td>
                           <td>{item.quantity}</td>
-                          <td>
-                            {settings?.currencySymbol || "$"}
-                            {item.price.toFixed(2)}
-                          </td>
-                          <td>
-                            {settings?.currencySymbol || "$"}
-                            {(item.price * item.quantity).toFixed(2)}
-                          </td>
+                          <td>{format(item.price)}</td>
+                          <td>{format(item.price * item.quantity)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -236,24 +232,15 @@ const OrdersPage: React.FC = () => {
               <div className="order-totals">
                 <div className="total-row">
                   <span>Subtotal:</span>
-                  <span>
-                    {settings?.currencySymbol || "$"}
-                    {(selectedOrder.total - selectedOrder.tax).toFixed(2)}
-                  </span>
+                  <span>{format(selectedOrder.total - selectedOrder.tax)}</span>
                 </div>
                 <div className="total-row">
                   <span>Tax ({settings?.taxRate || 0}%):</span>
-                  <span>
-                    {settings?.currencySymbol || "$"}
-                    {selectedOrder.tax.toFixed(2)}
-                  </span>
+                  <span>{format(selectedOrder.tax)}</span>
                 </div>
                 <div className="total-row grand-total">
                   <span>Total:</span>
-                  <span>
-                    {settings?.currencySymbol || "$"}
-                    {selectedOrder.total.toFixed(2)}
-                  </span>
+                  <span>{format(selectedOrder.total)}</span>
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
-import Store from "electron-store";
+// electron/settings.ts
+import databaseService from "./database";
 
-// Define the shape of our settings
 export interface StoreSettings {
   // Business information
   companyName: string;
@@ -27,73 +27,116 @@ export interface StoreSettings {
   // Display settings
   showProductImages: boolean;
   defaultCategory: string;
+
   // Security settings
   pinEnabled: boolean;
   pinCode: string;
 }
 
-// Create settings store with default values
-const settingsStore = new Store<StoreSettings>({
-  name: "pos-settings",
-  defaults: {
-    // Business information
-    companyName: "My POS Store",
-    address: "123 Main Street, City, State, ZIP",
-    phone: "(123) 456-7890",
-    email: "info@myposstore.com",
-    website: "www.myposstore.com",
+// Default settings values
+const defaultSettings: StoreSettings = {
+  // Business information
+  companyName: "My POS Store",
+  address: "123 Main Street, City, State, ZIP",
+  phone: "(123) 456-7890",
+  email: "info@myposstore.com",
+  website: "www.myposstore.com",
 
-    // Regional settings
-    currency: "USD",
-    currencySymbol: "$",
-    language: "en",
+  // Regional settings
+  currency: "USD",
+  currencySymbol: "$",
+  language: "en",
 
-    // Tax settings
-    taxEnabled: true,
-    taxRate: 8.5, // Percentage
-    taxInclusivePrice: false,
+  // Tax settings
+  taxEnabled: true,
+  taxRate: 8.5, // Percentage
+  taxInclusivePrice: false,
 
-    // Receipt settings
-    receiptHeader: "Thank you for your purchase!",
-    receiptFooter: "Please come again!",
-    printReceiptAutomatically: true,
+  // Receipt settings
+  receiptHeader: "Thank you for your purchase!",
+  receiptFooter: "Please come again!",
+  printReceiptAutomatically: true,
 
-    // Display settings
-    showProductImages: true,
-    defaultCategory: "all",
+  // Display settings
+  showProductImages: true,
+  defaultCategory: "all",
 
-    // Security settings
-    pinEnabled: false,
-    pinCode: "",
-  },
-});
+  // Security settings
+  pinEnabled: false,
+  pinCode: "",
+};
 
 class SettingsService {
   // Get all settings
-  getAll(): StoreSettings {
-    return settingsStore.store;
+  async getAll(): Promise<StoreSettings> {
+    try {
+      const settings = await databaseService.getSettings();
+      return { ...defaultSettings, ...settings };
+    } catch (error) {
+      console.error("Error getting all settings:", error);
+      return { ...defaultSettings };
+    }
   }
 
   // Get a specific setting
-  get<K extends keyof StoreSettings>(key: K): StoreSettings[K] {
-    return settingsStore.get(key);
+  async get<K extends keyof StoreSettings>(key: K): Promise<StoreSettings[K]> {
+    try {
+      const value = await databaseService.getSetting(key as string);
+      return value !== undefined ? value : defaultSettings[key];
+    } catch (error) {
+      console.error(`Error getting setting: ${key}`, error);
+      return defaultSettings[key];
+    }
   }
 
   // Set a specific setting
-  set<K extends keyof StoreSettings>(key: K, value: StoreSettings[K]): void {
-    settingsStore.set(key, value);
+  async set<K extends keyof StoreSettings>(
+    key: K,
+    value: StoreSettings[K]
+  ): Promise<void> {
+    try {
+      // For PIN code, ensure it's stored as a string
+      if (key === "pinCode") {
+        await databaseService.setSetting(key as string, String(value));
+      } else {
+        await databaseService.setSetting(key as string, value);
+      }
+    } catch (error) {
+      console.error(`Error setting setting: ${key}`, error);
+    }
   }
 
   // Update multiple settings at once
-  update(settings: Partial<StoreSettings>): void {
-    for (const [key, value] of Object.entries(settings)) {
-      settingsStore.set(key as keyof StoreSettings, value);
+  async update(settings: Partial<StoreSettings>): Promise<void> {
+    try {
+      await databaseService.updateSettings(settings);
+    } catch (error) {
+      console.error("Error updating settings:", error);
     }
   }
 
   // Reset settings to defaults
-  reset(): void {
-    settingsStore.clear();
+  async reset(): Promise<void> {
+    try {
+      await databaseService.resetSettings(defaultSettings);
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+    }
+  }
+
+  // Initialize settings with defaults if they don't exist
+  async initialize(): Promise<void> {
+    try {
+      const settings = await databaseService.getSettings();
+      const keys = Object.keys(settings);
+
+      if (keys.length === 0) {
+        // No settings exist, initialize with defaults
+        await this.update(defaultSettings);
+      }
+    } catch (error) {
+      console.error("Error initializing settings:", error);
+    }
   }
 }
 

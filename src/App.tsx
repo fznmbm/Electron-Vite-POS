@@ -9,7 +9,7 @@ import CheckoutModal from "./components/Checkout/CheckoutModal";
 import TopNavigation from "./components/Navigation/TopNavigation";
 import SettingsPage from "./components/Settings/SettingsPage";
 import ProductManagement from "./components/Products/ProductManagement";
-import CategoryManagement from "./components/Settings/CategoryManagement";
+import CategoryManagement from "./components/Categories/CategoryManagement";
 import OrdersPage from "./components/Orders/OrdersPage";
 import ReportsPage from "./components/Reports/ReportsPage";
 import BarcodeScanner from "./components/BarcodeScanner/BarcodeScanner";
@@ -18,6 +18,7 @@ import BarcodeScanner from "./components/BarcodeScanner/BarcodeScanner";
 import { useProducts, useCategories, useOrders } from "./hooks/useDatabase";
 import { useSettings } from "./hooks/useSettings";
 import PinLogin from "./components/Security/PinLogin";
+import { RefreshProvider } from "./contexts/RefreshContext";
 
 function App() {
   // State for application
@@ -27,6 +28,18 @@ function App() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("home");
   const [authenticated, setAuthenticated] = useState(false);
+  const { settings, loading: settingsLoading } = useSettings();
+
+  // Add this effect to check for PIN protection
+  useEffect(() => {
+    if (settings && !settingsLoading) {
+      // If PIN protection is not enabled, automatically authenticate
+      if (!settings.pinEnabled || !settings.pinCode) {
+        setAuthenticated(true);
+      }
+    }
+  }, [settings, settingsLoading]);
+
   // Use the database hooks
   const {
     products,
@@ -44,8 +57,6 @@ function App() {
   } = useCategories();
 
   const { addOrder } = useOrders();
-
-  const { settings, loading: settingsLoading } = useSettings();
 
   // Effect to fetch products when category changes
   useEffect(() => {
@@ -253,16 +264,7 @@ function App() {
     <TopNavigation onNavigate={handleNavigate} activePage={currentPage} />
   );
 
-  // Add this effect to check for PIN protection
-  useEffect(() => {
-    if (settings && !settingsLoading) {
-      // If PIN protection is not enabled, automatically authenticate
-      if (!settings.pinEnabled || !settings.pinCode) {
-        setAuthenticated(true);
-      }
-    }
-  }, [settings, settingsLoading]);
-
+  // If settings are still loading, show loading indicator
   if (settingsLoading) {
     return <div className="loading-container">Loading...</div>;
   }
@@ -278,25 +280,27 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <MainLayout
-        sidebar={sidebarContent}
-        content={mainContent}
-        footer={footerContent}
-      />
+    <RefreshProvider>
+      <div className="App">
+        <MainLayout
+          sidebar={sidebarContent}
+          content={mainContent}
+          footer={footerContent}
+        />
 
-      <CheckoutModal
-        isOpen={isCheckoutModalOpen}
-        onClose={() => setIsCheckoutModalOpen(false)}
-        cartItems={cart}
-        onCompleteCheckout={handleCompleteCheckout}
-      />
+        <CheckoutModal
+          isOpen={isCheckoutModalOpen}
+          onClose={() => setIsCheckoutModalOpen(false)}
+          cartItems={cart}
+          onCompleteCheckout={handleCompleteCheckout}
+        />
 
-      {/* Add barcode scanner component */}
-      {currentPage === "home" && (
-        <BarcodeScanner onProductScanned={handleAddToCart} />
-      )}
-    </div>
+        {/* Add barcode scanner component */}
+        {currentPage === "home" && (
+          <BarcodeScanner onProductScanned={handleAddToCart} />
+        )}
+      </div>
+    </RefreshProvider>
   );
 }
 

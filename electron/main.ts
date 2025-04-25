@@ -5,6 +5,7 @@ import { setupIPCHandlers } from "./ipc-handlers";
 // We'll use a different approach for database initialization
 // to avoid ES module imports
 import database from "./database";
+import settingsService from "./settings";
 
 //
 //const database = require(path.join(__dirname, "database.ts"));
@@ -92,8 +93,10 @@ app.on("activate", () => {
 });
 
 // App initialization
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
+    // Initialize settings with defaults
+    await settingsService.initialize();
     // Create the main window
     createWindow();
 

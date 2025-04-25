@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Product, Category, Order, OrderItem } from "../../electron/database";
+import { useRefresh } from "../contexts/RefreshContext";
 
 // Custom hook for products
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { refreshTrigger } = useRefresh();
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -20,6 +22,11 @@ export function useProducts() {
       setLoading(false);
     }
   }, []);
+
+  // Refetch when refreshTrigger changes
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts, refreshTrigger]);
 
   const addProduct = useCallback(
     async (product: Product) => {

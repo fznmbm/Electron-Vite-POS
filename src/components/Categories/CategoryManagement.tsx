@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useCategories } from "../../hooks/useDatabase";
 import { Category } from "../../../electron/database";
-import "./Settings.css";
+import "../Settings/Settings.css";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 const CategoryManagement: React.FC = () => {
   const {
@@ -19,6 +20,8 @@ const CategoryManagement: React.FC = () => {
     display_order: 0,
   });
 
+  const { refreshData } = useRefresh();
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategory.name.trim()) return;
@@ -26,6 +29,8 @@ const CategoryManagement: React.FC = () => {
     try {
       await addCategory(newCategory);
       setNewCategory({ name: "", display_order: 0 });
+
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error adding category:", err);
       alert("Failed to add category");
@@ -39,6 +44,8 @@ const CategoryManagement: React.FC = () => {
     try {
       await updateCategory(editingCategory);
       setEditingCategory(null);
+
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error updating category:", err);
       alert("Failed to update category");
@@ -56,6 +63,8 @@ const CategoryManagement: React.FC = () => {
 
     try {
       await deleteCategory(id);
+
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error deleting category:", err);
       alert("Failed to delete category");

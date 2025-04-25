@@ -1,5 +1,6 @@
 import React from "react";
 import "./TopNavigation.css";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 interface TopNavigationProps {
   onNavigate: (page: string) => void;
@@ -10,12 +11,19 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   onNavigate,
   activePage,
 }) => {
+  const { refreshData } = useRefresh();
+
+  const handleNavigate = (page: string) => {
+    refreshData(); // Refresh data when navigating
+    onNavigate(page);
+  };
+
   return (
     <div className="top-navigation">
       <div className="nav-buttons">
         <button
           className={`nav-button ${activePage === "home" ? "active" : ""}`}
-          onClick={() => onNavigate("home")}
+          onClick={() => handleNavigate("home")}
         >
           <span className="nav-icon">🏠</span>
           <span className="nav-label">Home</span>
@@ -23,7 +31,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 
         <button
           className={`nav-button ${activePage === "orders" ? "active" : ""}`}
-          onClick={() => onNavigate("orders")}
+          onClick={() => handleNavigate("orders")}
         >
           <span className="nav-icon">📋</span>
           <span className="nav-label">Orders</span>
@@ -31,7 +39,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 
         <button
           className={`nav-button ${activePage === "products" ? "active" : ""}`}
-          onClick={() => onNavigate("products")}
+          onClick={() => handleNavigate("products")}
         >
           <span className="nav-icon">📦</span>
           <span className="nav-label">Products</span>
@@ -41,7 +49,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
           className={`nav-button ${
             activePage === "categories" ? "active" : ""
           }`}
-          onClick={() => onNavigate("categories")}
+          onClick={() => handleNavigate("categories")}
         >
           <span className="nav-icon">🏷️</span>
           <span className="nav-label">Categories</span>
@@ -49,7 +57,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 
         <button
           className={`nav-button ${activePage === "reports" ? "active" : ""}`}
-          onClick={() => onNavigate("reports")}
+          onClick={() => handleNavigate("reports")}
         >
           <span className="nav-icon">📊</span>
           <span className="nav-label">Reports</span>
@@ -57,7 +65,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 
         <button
           className={`nav-button ${activePage === "settings" ? "active" : ""}`}
-          onClick={() => onNavigate("settings")}
+          onClick={() => handleNavigate("settings")}
         >
           <span className="nav-icon">⚙️</span>
           <span className="nav-label">Settings</span>

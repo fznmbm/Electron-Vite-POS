@@ -1,5 +1,6 @@
 import React from "react";
 import "./CategoryTabs.css";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 interface CategoryTabsProps {
   categories: string[];
@@ -12,6 +13,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
   selectedCategory,
   onSelectCategory,
 }) => {
+  const { refreshData } = useRefresh();
   return (
     <div className="category-tabs">
       <button

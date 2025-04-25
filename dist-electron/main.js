@@ -9,7 +9,6 @@ const electron = require("electron");
 const path = require("path");
 const sqlite3 = require("sqlite3");
 const fs = require("fs");
-const Store = require("electron-store");
 function _interopNamespaceDefault(e) {
   const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
   if (e) {
@@ -91,6 +90,11 @@ class DatabaseService {
         FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id)
       );
+
+       CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
     `;
     (_a = this.db) == null ? void 0 : _a.exec(sql, (err) => {
       if (err) {
@@ -650,6 +654,119 @@ class DatabaseService {
       );
     });
   }
+  // Settings methods
+  // Settings methods
+  getSettings() {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+      this.db.all("SELECT key, value FROM settings", (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const settings = {};
+        rows.forEach((row) => {
+          try {
+            settings[row.key] = JSON.parse(row.value);
+          } catch (e) {
+            settings[row.key] = row.value;
+          }
+        });
+        resolve(settings);
+      });
+    });
+  }
+  getSetting(key) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+      this.db.get(
+        "SELECT value FROM settings WHERE key = ?",
+        [key],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          if (!row) {
+            resolve(void 0);
+            return;
+          }
+          try {
+            resolve(JSON.parse(row.value));
+          } catch (e) {
+            resolve(row.value);
+          }
+        }
+      );
+    });
+  }
+  setSetting(key, value) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+      const stringValue = typeof value === "object" ? JSON.stringify(value) : String(value);
+      this.db.run(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+        [key, stringValue],
+        function(err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(true);
+          }
+        }
+      );
+    });
+  }
+  updateSettings(settings) {
+    return new Promise(async (resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+      try {
+        this.db.run("BEGIN TRANSACTION");
+        for (const [key, value] of Object.entries(settings)) {
+          await this.setSetting(key, value);
+        }
+        this.db.run("COMMIT");
+        resolve(true);
+      } catch (err) {
+        this.db.run("ROLLBACK");
+        reject(err);
+      }
+    });
+  }
+  resetSettings(defaults) {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+      this.db.run("DELETE FROM settings", async (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        try {
+          if (defaults) {
+            await this.updateSettings(defaults);
+          }
+          resolve(true);
+        } catch (err2) {
+          reject(err2);
+        }
+      });
+    });
+  }
   // Close the database connection
   close() {
     if (this.db) {
@@ -664,58 +781,93 @@ class DatabaseService {
   }
 }
 const databaseService = new DatabaseService();
-const settingsStore = new Store({
-  name: "pos-settings",
-  defaults: {
-    // Business information
-    companyName: "My POS Store",
-    address: "123 Main Street, City, State, ZIP",
-    phone: "(123) 456-7890",
-    email: "info@myposstore.com",
-    website: "www.myposstore.com",
-    // Regional settings
-    currency: "USD",
-    currencySymbol: "$",
-    language: "en",
-    // Tax settings
-    taxEnabled: true,
-    taxRate: 8.5,
-    // Percentage
-    taxInclusivePrice: false,
-    // Receipt settings
-    receiptHeader: "Thank you for your purchase!",
-    receiptFooter: "Please come again!",
-    printReceiptAutomatically: true,
-    // Display settings
-    showProductImages: true,
-    defaultCategory: "all",
-    // Security settings
-    pinEnabled: false,
-    pinCode: ""
-  }
-});
+const defaultSettings = {
+  // Business information
+  companyName: "My POS Store",
+  address: "123 Main Street, City, State, ZIP",
+  phone: "(123) 456-7890",
+  email: "info@myposstore.com",
+  website: "www.myposstore.com",
+  // Regional settings
+  currency: "USD",
+  currencySymbol: "$",
+  language: "en",
+  // Tax settings
+  taxEnabled: true,
+  taxRate: 8.5,
+  // Percentage
+  taxInclusivePrice: false,
+  // Receipt settings
+  receiptHeader: "Thank you for your purchase!",
+  receiptFooter: "Please come again!",
+  printReceiptAutomatically: true,
+  // Display settings
+  showProductImages: true,
+  defaultCategory: "all",
+  // Security settings
+  pinEnabled: false,
+  pinCode: ""
+};
 class SettingsService {
   // Get all settings
-  getAll() {
-    return settingsStore.store;
+  async getAll() {
+    try {
+      const settings = await databaseService.getSettings();
+      return { ...defaultSettings, ...settings };
+    } catch (error) {
+      console.error("Error getting all settings:", error);
+      return { ...defaultSettings };
+    }
   }
   // Get a specific setting
-  get(key) {
-    return settingsStore.get(key);
+  async get(key) {
+    try {
+      const value = await databaseService.getSetting(key);
+      return value !== void 0 ? value : defaultSettings[key];
+    } catch (error) {
+      console.error(`Error getting setting: ${key}`, error);
+      return defaultSettings[key];
+    }
   }
   // Set a specific setting
-  set(key, value) {
-    settingsStore.set(key, value);
+  async set(key, value) {
+    try {
+      if (key === "pinCode") {
+        await databaseService.setSetting(key, String(value));
+      } else {
+        await databaseService.setSetting(key, value);
+      }
+    } catch (error) {
+      console.error(`Error setting setting: ${key}`, error);
+    }
   }
   // Update multiple settings at once
-  update(settings) {
-    for (const [key, value] of Object.entries(settings)) {
-      settingsStore.set(key, value);
+  async update(settings) {
+    try {
+      await databaseService.updateSettings(settings);
+    } catch (error) {
+      console.error("Error updating settings:", error);
     }
   }
   // Reset settings to defaults
-  reset() {
-    settingsStore.clear();
+  async reset() {
+    try {
+      await databaseService.resetSettings(defaultSettings);
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+    }
+  }
+  // Initialize settings with defaults if they don't exist
+  async initialize() {
+    try {
+      const settings = await databaseService.getSettings();
+      const keys = Object.keys(settings);
+      if (keys.length === 0) {
+        await this.update(defaultSettings);
+      }
+    } catch (error) {
+      console.error("Error initializing settings:", error);
+    }
   }
 }
 const settingsService = new SettingsService();
@@ -972,8 +1124,9 @@ electron.app.on("activate", () => {
     createWindow();
   }
 });
-electron.app.whenReady().then(() => {
+electron.app.whenReady().then(async () => {
   try {
+    await settingsService.initialize();
     createWindow();
     registerShortcuts();
   } catch (error) {

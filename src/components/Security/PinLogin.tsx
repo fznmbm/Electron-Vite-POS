@@ -23,7 +23,7 @@ const PinLogin: React.FC<PinLoginProps> = ({ correctPin, onSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (pin === correctPin) {
+    if (String(pin) === String(correctPin)) {
       onSuccess();
     } else {
       setError("Incorrect PIN. Please try again.");

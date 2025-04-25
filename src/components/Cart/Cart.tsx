@@ -1,6 +1,7 @@
 import React from "react";
 import { Product } from "../Products/ProductGrid";
 import "./Cart.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 export interface CartItem {
   product: Product;
@@ -26,6 +27,8 @@ const Cart: React.FC<CartProps> = ({
   onCheckout,
   onClose, // Receive the close handler
 }) => {
+  const { format } = useCurrencyFormatter();
+
   const calculateTotal = () => {
     return items.reduce((total, item) => {
       return total + item.product.price * item.quantity;
@@ -62,7 +65,7 @@ const Cart: React.FC<CartProps> = ({
                 <div key={item.product.id} className="cart-item">
                   <div className="cart-item-info">
                     <h3>{item.product.name}</h3>
-                    <p>${item.product.price.toFixed(2)}</p>
+                    <p>{format(item.product.price)}</p>
                   </div>
                   <div className="cart-item-actions">
                     <button onClick={() => onDecreaseQuantity(item.product.id)}>
@@ -74,7 +77,9 @@ const Cart: React.FC<CartProps> = ({
                     </button>
                   </div>
                   <div className="cart-item-total">
-                    <p>${(item.product.price * item.quantity).toFixed(2)}</p>
+                    {/*<p>${(item.product.price * item.quantity).toFixed(2)}</p>*/}
+                    <p>{format(item.product.price * item.quantity)}</p>
+
                     <button
                       className="btn-remove"
                       onClick={() => onRemoveItem(item.product.id)}
@@ -89,7 +94,7 @@ const Cart: React.FC<CartProps> = ({
             <div className="cart-summary">
               <div className="cart-total">
                 <span>Total:</span>
-                <span>${calculateTotal().toFixed(2)}</span>
+                <span>{format(calculateTotal())}</span>
               </div>
               <button className="btn-checkout" onClick={onCheckout}>
                 Checkout

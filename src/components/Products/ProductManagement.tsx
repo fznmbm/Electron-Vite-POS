@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useProducts, useCategories } from "../../hooks/useDatabase";
 import { Product } from "../../../electron/database";
 import "./ProductManagement.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 const ProductManagement: React.FC = () => {
   const {
@@ -31,6 +33,8 @@ const ProductManagement: React.FC = () => {
 
   const isLoading = productsLoading || categoriesLoading;
   const error = productsError || categoriesError;
+  const { format } = useCurrencyFormatter();
+  const { refreshData } = useRefresh();
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +52,8 @@ const ProductManagement: React.FC = () => {
         barcode: "",
         image: "",
       });
+
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error adding product:", err);
       alert("Failed to add product");
@@ -68,6 +74,10 @@ const ProductManagement: React.FC = () => {
     try {
       await updateProduct(editingProduct);
       setEditingProduct(null);
+      refreshData(); //
+      // Trigger refresh
+      console.log("Product updated successfully:", editingProduct);
+      console.log("Product updated successfully:", refreshData());
     } catch (err) {
       console.error("Error updating product:", err);
       alert("Failed to update product");
@@ -81,6 +91,7 @@ const ProductManagement: React.FC = () => {
 
     try {
       await deleteProduct(id);
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error deleting product:", err);
       alert("Failed to delete product");
@@ -222,7 +233,7 @@ const ProductManagement: React.FC = () => {
                     )}
                   </td>
                   <td>{product.name}</td>
-                  <td>${product.price.toFixed(2)}</td>
+                  <td>{format(product.price)}</td>
                   <td>{product.category || "None"}</td>
                   <td>{product.barcode || "N/A"}</td>
                   <td className="actions">

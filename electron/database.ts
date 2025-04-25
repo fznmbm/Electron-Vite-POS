@@ -107,6 +107,11 @@ class DatabaseService {
         FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id)
       );
+
+       CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
     `;
 
     this.db?.exec(sql, (err) => {
@@ -699,6 +704,138 @@ class DatabaseService {
           else resolve(rows || []);
         }
       );
+    });
+  }
+
+  // Settings methods
+  // Settings methods
+  getSettings(): Promise<Record<string, any>> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.all("SELECT key, value FROM settings", (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const settings: Record<string, any> = {};
+        rows.forEach((row) => {
+          try {
+            settings[row.key] = JSON.parse(row.value);
+          } catch (e) {
+            settings[row.key] = row.value;
+          }
+        });
+
+        resolve(settings);
+      });
+    });
+  }
+
+  getSetting(key: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.get(
+        "SELECT value FROM settings WHERE key = ?",
+        [key],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!row) {
+            resolve(undefined);
+            return;
+          }
+
+          try {
+            resolve(JSON.parse(row.value));
+          } catch (e) {
+            resolve(row.value);
+          }
+        }
+      );
+    });
+  }
+
+  setSetting(key: string, value: any): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const stringValue =
+        typeof value === "object" ? JSON.stringify(value) : String(value);
+
+      this.db.run(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+        [key, stringValue],
+        function (err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(true);
+          }
+        }
+      );
+    });
+  }
+
+  updateSettings(settings: Record<string, any>): Promise<boolean> {
+    return new Promise(async (resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      try {
+        this.db.run("BEGIN TRANSACTION");
+
+        for (const [key, value] of Object.entries(settings)) {
+          await this.setSetting(key, value);
+        }
+
+        this.db.run("COMMIT");
+        resolve(true);
+      } catch (err) {
+        this.db.run("ROLLBACK");
+        reject(err);
+      }
+    });
+  }
+
+  resetSettings(defaults: Record<string, any>): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      this.db.run("DELETE FROM settings", async (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        try {
+          if (defaults) {
+            await this.updateSettings(defaults);
+          }
+          resolve(true);
+        } catch (err) {
+          reject(err);
+        }
+      });
     });
   }
 

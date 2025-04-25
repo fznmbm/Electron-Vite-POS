@@ -158,6 +158,7 @@ const SettingsPage: React.FC = () => {
                 <option value="CAD">Canadian Dollar (CAD)</option>
                 <option value="AUD">Australian Dollar (AUD)</option>
                 <option value="INR">Indian Rupee (INR)</option>
+                <option value="INR">Sri Lankan Rupee (LKR)</option>
               </select>
             </div>
 

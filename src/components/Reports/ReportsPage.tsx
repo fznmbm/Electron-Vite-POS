@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useReports } from "../../hooks/useDatabase";
 import { useSettings } from "../../hooks/useSettings";
 import "./ReportsPage.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 const ReportsPage: React.FC = () => {
   const { getTopSellingProducts, getDailySales, getSalesByCategory } =
     useReports();
   const { settings } = useSettings();
+  const { format } = useCurrencyFormatter();
 
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [dailySales, setDailySales] = useState<any[]>([]);
@@ -45,10 +47,10 @@ const ReportsPage: React.FC = () => {
     loadReportData();
   }, [timeRange, getTopSellingProducts, getDailySales, getSalesByCategory]);
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return `${settings?.currencySymbol || "$"}${value.toFixed(2)}`;
-  };
+  // // Format currency
+  // const formatCurrency = (value: number) => {
+  //   return `${settings?.currencySymbol || "$"}${value.toFixed(2)}`;
+  // };
 
   // Update time range and reload data
   const handleTimeRangeChange = (days: number) => {
@@ -124,9 +126,7 @@ const ReportsPage: React.FC = () => {
                       {new Date(day.date).toLocaleDateString()}
                     </div>
                     <div className="sales-orders">{day.order_count}</div>
-                    <div className="sales-total">
-                      {formatCurrency(day.total_sales)}
-                    </div>
+                    <div className="sales-total">{format(day.total_sales)}</div>
                   </div>
                 ))}
               </div>
@@ -137,7 +137,7 @@ const ReportsPage: React.FC = () => {
                 </div>
                 <div>
                   Total Sales:{" "}
-                  {formatCurrency(
+                  {format(
                     dailySales.reduce((sum, day) => sum + day.total_sales, 0)
                   )}
                 </div>
@@ -162,7 +162,7 @@ const ReportsPage: React.FC = () => {
                   <div key={category.category} className="category-sales-item">
                     <div className="category-name">{category.category}</div>
                     <div className="category-total">
-                      {formatCurrency(category.total_sales)}
+                      {format(category.total_sales)}
                     </div>
                   </div>
                 ))}
@@ -170,7 +170,7 @@ const ReportsPage: React.FC = () => {
               <div className="category-sales-summary">
                 <div>
                   Total:{" "}
-                  {formatCurrency(
+                  {format(
                     salesByCategory.reduce(
                       (sum, category) => sum + category.total_sales,
                       0
