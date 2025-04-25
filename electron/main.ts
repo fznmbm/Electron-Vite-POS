@@ -32,7 +32,7 @@ function createWindow() {
   // Load the appropriate URL
   if (VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools();
+    //mainWindow.webContents.openDevTools();
   } else {
     // In production, load the bundled HTML file
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));

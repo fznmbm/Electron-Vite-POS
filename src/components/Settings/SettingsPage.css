@@ -185,3 +185,22 @@
     overflow-x: auto;
   }
 }
+
+/* Add this to your Settings.css file */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.checkbox-group label {
+  cursor: pointer;
+  font-size: 16px;
+}

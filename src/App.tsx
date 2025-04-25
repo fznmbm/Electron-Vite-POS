@@ -17,6 +17,7 @@ import BarcodeScanner from "./components/BarcodeScanner/BarcodeScanner";
 // Import the database hooks
 import { useProducts, useCategories, useOrders } from "./hooks/useDatabase";
 import { useSettings } from "./hooks/useSettings";
+import PinLogin from "./components/Security/PinLogin";
 
 function App() {
   // State for application
@@ -25,7 +26,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("home");
-
+  const [authenticated, setAuthenticated] = useState(false);
   // Use the database hooks
   const {
     products,
@@ -251,6 +252,30 @@ function App() {
   const footerContent = (
     <TopNavigation onNavigate={handleNavigate} activePage={currentPage} />
   );
+
+  // Add this effect to check for PIN protection
+  useEffect(() => {
+    if (settings && !settingsLoading) {
+      // If PIN protection is not enabled, automatically authenticate
+      if (!settings.pinEnabled || !settings.pinCode) {
+        setAuthenticated(true);
+      }
+    }
+  }, [settings, settingsLoading]);
+
+  if (settingsLoading) {
+    return <div className="loading-container">Loading...</div>;
+  }
+
+  // If PIN is enabled and user is not authenticated, show PIN login
+  if (settings?.pinEnabled && settings.pinCode && !authenticated) {
+    return (
+      <PinLogin
+        correctPin={settings.pinCode}
+        onSuccess={() => setAuthenticated(true)}
+      />
+    );
+  }
 
   return (
     <div className="App">

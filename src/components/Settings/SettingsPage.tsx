@@ -131,7 +131,7 @@ const SettingsPage: React.FC = () => {
           <div className="form-group">
             <label htmlFor="website">Website</label>
             <input
-              type="url"
+              type="text"
               id="website"
               name="website"
               value={formState.website || ""}
@@ -139,7 +139,6 @@ const SettingsPage: React.FC = () => {
             />
           </div>
         </div>
-
         <div className="settings-section">
           <h2>Regional Settings</h2>
 
@@ -192,11 +191,10 @@ const SettingsPage: React.FC = () => {
             </select>
           </div>
         </div>
-
         <div className="settings-section">
           <h2>Tax Settings</h2>
 
-          <div className="form-group checkbox">
+          <div className="checkbox-group">
             <input
               type="checkbox"
               id="taxEnabled"
@@ -222,7 +220,7 @@ const SettingsPage: React.FC = () => {
             />
           </div>
 
-          <div className="form-group checkbox">
+          <div className="checkbox-group">
             <input
               type="checkbox"
               id="taxInclusivePrice"
@@ -234,7 +232,6 @@ const SettingsPage: React.FC = () => {
             <label htmlFor="taxInclusivePrice">Prices include tax</label>
           </div>
         </div>
-
         <div className="settings-section">
           <h2>Receipt Settings</h2>
 
@@ -260,7 +257,7 @@ const SettingsPage: React.FC = () => {
             />
           </div>
 
-          <div className="form-group checkbox">
+          <div className="checkbox-group">
             <input
               type="checkbox"
               id="printReceiptAutomatically"
@@ -273,11 +270,10 @@ const SettingsPage: React.FC = () => {
             </label>
           </div>
         </div>
-
         <div className="settings-section">
           <h2>Display Settings</h2>
 
-          <div className="form-group checkbox">
+          <div className="checkbox-group">
             <input
               type="checkbox"
               id="showProductImages"
@@ -300,6 +296,42 @@ const SettingsPage: React.FC = () => {
               {/* We would fetch and map actual categories here */}
             </select>
           </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>Security Settings</h2>
+
+          <div className="checkbox-group">
+            <input
+              type="checkbox"
+              id="pinEnabled"
+              name="pinEnabled"
+              checked={formState.pinEnabled || false}
+              onChange={handleInputChange}
+            />
+            <label htmlFor="pinEnabled">Enable PIN Protection</label>
+          </div>
+
+          {formState.pinEnabled && (
+            <div className="form-group">
+              <label htmlFor="pinCode">PIN Code (4 digits)</label>
+              <input
+                type="password"
+                id="pinCode"
+                name="pinCode"
+                pattern="[0-9]{4}"
+                maxLength={4}
+                value={formState.pinCode || ""}
+                onChange={handleInputChange}
+                placeholder="Enter 4-digit PIN"
+                required={formState.pinEnabled}
+              />
+              <small className="form-hint">
+                Please remember this PIN. It will be required to access the
+                application.
+              </small>
+            </div>
+          )}
         </div>
 
         <div className="settings-actions">

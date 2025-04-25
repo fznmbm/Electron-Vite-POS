@@ -27,6 +27,9 @@ export interface StoreSettings {
   // Display settings
   showProductImages: boolean;
   defaultCategory: string;
+  // Security settings
+  pinEnabled: boolean;
+  pinCode: string;
 }
 
 // Create settings store with default values
@@ -58,6 +61,10 @@ const settingsStore = new Store<StoreSettings>({
     // Display settings
     showProductImages: true,
     defaultCategory: "all",
+
+    // Security settings
+    pinEnabled: false,
+    pinCode: "",
   },
 });
 

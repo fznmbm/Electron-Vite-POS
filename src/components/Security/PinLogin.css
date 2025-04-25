@@ -1,0 +1,72 @@
+/* src/components/Security/PinLogin.css */
+.pin-login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.pin-login-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pin-login-container h2 {
+  margin-top: 0;
+  color: #2a5885;
+}
+
+.pin-input {
+  width: 100%;
+  padding: 12px;
+  margin: 20px 0;
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.pin-submit-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2a5885;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pin-submit-button:hover:not(:disabled) {
+  background-color: #1e4b7b;
+}
+
+.pin-submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.pin-error {
+  color: #f44336;
+  margin-bottom: 10px;
+}
+
+.form-hint {
+  color: #757575;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  display: block;
+}

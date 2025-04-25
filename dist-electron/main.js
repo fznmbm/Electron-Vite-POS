@@ -688,7 +688,10 @@ const settingsStore = new Store({
     printReceiptAutomatically: true,
     // Display settings
     showProductImages: true,
-    defaultCategory: "all"
+    defaultCategory: "all",
+    // Security settings
+    pinEnabled: false,
+    pinCode: ""
   }
 });
 class SettingsService {
@@ -925,7 +928,6 @@ function createWindow() {
   });
   if (VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
