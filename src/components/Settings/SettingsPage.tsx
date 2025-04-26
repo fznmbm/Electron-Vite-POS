@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSettings } from "../../hooks/useSettings";
 import { StoreSettings } from "../../../electron/settings";
 import "./SettingsPage.css";
@@ -8,6 +8,7 @@ const SettingsPage: React.FC = () => {
     useSettings();
   const [formState, setFormState] = useState<Partial<StoreSettings>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // const [showForm, setShowForm] = useState(true); // Add this state
 
   // Initialize form state when settings are loaded
   React.useEffect(() => {
@@ -48,6 +49,10 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  // Add a new state variable for the form key
+  // const [formKey, setFormKey] = useState(0);
+  // const formRef = useRef<HTMLFormElement>(null);
+
   const handleReset = async () => {
     const confirm = window.confirm(
       "Are you sure you want to reset all settings to default values?"
@@ -55,8 +60,15 @@ const SettingsPage: React.FC = () => {
     if (confirm) {
       try {
         await resetSettings();
+
+        const updatedSettings = await window.settings.getAll();
+
+        setFormState(updatedSettings);
+
         setSuccessMessage("Settings reset to defaults!");
-        setTimeout(() => setSuccessMessage(null), 3000);
+        setTimeout(() => setSuccessMessage(null), 2000);
+        // Reset the form key to force a re-render
+        Document.getElementById("companyName").disabled = false; // Enable the company name field
       } catch (err) {
         console.error("Error resetting settings:", err);
       }
@@ -158,7 +170,7 @@ const SettingsPage: React.FC = () => {
                 <option value="CAD">Canadian Dollar (CAD)</option>
                 <option value="AUD">Australian Dollar (AUD)</option>
                 <option value="INR">Indian Rupee (INR)</option>
-                <option value="INR">Sri Lankan Rupee (LKR)</option>
+                <option value="LKR">Sri Lankan Rupee (LKR)</option>
               </select>
             </div>
 

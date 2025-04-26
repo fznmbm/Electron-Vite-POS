@@ -125,6 +125,7 @@ export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { refreshTrigger } = useRefresh(); // Add this
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -139,6 +140,10 @@ export function useCategories() {
       setLoading(false);
     }
   }, []);
+  // Add refreshTrigger to the dependency array of this useEffect
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories, refreshTrigger]);
 
   const addCategory = useCallback(
     async (category: Category) => {

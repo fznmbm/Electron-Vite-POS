@@ -15,7 +15,8 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 
   const handleNavigate = (page: string) => {
     refreshData(); // Refresh data when navigating
-    onNavigate(page);
+    //onNavigate(page);
+    setTimeout(() => onNavigate(page), 0); // Navigate on next tick
   };
 
   return (

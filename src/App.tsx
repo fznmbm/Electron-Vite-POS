@@ -18,7 +18,6 @@ import BarcodeScanner from "./components/BarcodeScanner/BarcodeScanner";
 import { useProducts, useCategories, useOrders } from "./hooks/useDatabase";
 import { useSettings } from "./hooks/useSettings";
 import PinLogin from "./components/Security/PinLogin";
-import { RefreshProvider } from "./contexts/RefreshContext";
 
 function App() {
   // State for application
@@ -57,6 +56,7 @@ function App() {
   } = useCategories();
 
   const { addOrder } = useOrders();
+  //const { refreshTrigger } = useRefresh(); // Add this
 
   // Effect to fetch products when category changes
   useEffect(() => {
@@ -69,7 +69,13 @@ function App() {
         getProductsByCategory(category.id);
       }
     }
-  }, [selectedCategory, categories, fetchProducts, getProductsByCategory]);
+  }, [
+    selectedCategory,
+    categories,
+    fetchProducts,
+    getProductsByCategory,
+    //refreshTrigger,
+  ]);
 
   // Effect to search products when query changes
   useEffect(() => {
@@ -91,6 +97,7 @@ function App() {
     searchProducts,
     fetchProducts,
     getProductsByCategory,
+    //refreshTrigger,
   ]);
 
   // Cart functions
@@ -280,27 +287,25 @@ function App() {
   }
 
   return (
-    <RefreshProvider>
-      <div className="App">
-        <MainLayout
-          sidebar={sidebarContent}
-          content={mainContent}
-          footer={footerContent}
-        />
+    <div className="App">
+      <MainLayout
+        sidebar={sidebarContent}
+        content={mainContent}
+        footer={footerContent}
+      />
 
-        <CheckoutModal
-          isOpen={isCheckoutModalOpen}
-          onClose={() => setIsCheckoutModalOpen(false)}
-          cartItems={cart}
-          onCompleteCheckout={handleCompleteCheckout}
-        />
+      <CheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        cartItems={cart}
+        onCompleteCheckout={handleCompleteCheckout}
+      />
 
-        {/* Add barcode scanner component */}
-        {currentPage === "home" && (
-          <BarcodeScanner onProductScanned={handleAddToCart} />
-        )}
-      </div>
-    </RefreshProvider>
+      {/* Add barcode scanner component */}
+      {currentPage === "home" && (
+        <BarcodeScanner onProductScanned={handleAddToCart} />
+      )}
+    </div>
   );
 }
 
