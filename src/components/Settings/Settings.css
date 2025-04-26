@@ -185,3 +185,12 @@
     overflow-x: auto;
   }
 }
+
+.validation-error {
+  color: #f44336;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  border-left: 4px solid #f44336;
+}

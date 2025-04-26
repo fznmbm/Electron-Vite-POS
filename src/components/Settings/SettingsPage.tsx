@@ -1,16 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+
 import { useSettings } from "../../hooks/useSettings";
+
 import { StoreSettings } from "../../../electron/settings";
+
 import "./SettingsPage.css";
 
 const SettingsPage: React.FC = () => {
   const { settings, loading, error, updateSettings, resetSettings } =
     useSettings();
+
   const [formState, setFormState] = useState<Partial<StoreSettings>>({});
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  // const [showForm, setShowForm] = useState(true); // Add this state
 
   // Initialize form state when settings are loaded
+
   React.useEffect(() => {
     if (settings) {
       setFormState(settings);
@@ -25,7 +30,9 @@ const SettingsPage: React.FC = () => {
     const { name, value, type } = e.target as HTMLInputElement;
 
     // Handle different input types
+
     let parsedValue: any = value;
+
     if (type === "checkbox") {
       parsedValue = (e.target as HTMLInputElement).checked;
     } else if (type === "number") {
@@ -34,41 +41,45 @@ const SettingsPage: React.FC = () => {
 
     setFormState((prev) => ({
       ...prev,
+
       [name]: parsedValue,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       await updateSettings(formState);
+
       setSuccessMessage("Settings saved successfully!");
+
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error("Error saving settings:", err);
     }
   };
 
-  // Add a new state variable for the form key
-  // const [formKey, setFormKey] = useState(0);
-  // const formRef = useRef<HTMLFormElement>(null);
-
   const handleReset = async () => {
     const confirm = window.confirm(
       "Are you sure you want to reset all settings to default values?"
     );
+
     if (confirm) {
       try {
         await resetSettings();
 
+        // Then fetch the latest settings
+
         const updatedSettings = await window.settings.getAll();
+
+        // Update both the global settings state and the local form state
 
         setFormState(updatedSettings);
 
         setSuccessMessage("Settings reset to defaults!");
+
         setTimeout(() => setSuccessMessage(null), 2000);
-        // Reset the form key to force a re-render
-        Document.getElementById("companyName").disabled = false; // Enable the company name field
       } catch (err) {
         console.error("Error resetting settings:", err);
       }
@@ -77,7 +88,9 @@ const SettingsPage: React.FC = () => {
 
   if (loading)
     return <div className="settings-loading">Loading settings...</div>;
+
   if (error) return <div className="settings-error">Error: {error}</div>;
+
   if (!settings)
     return <div className="settings-error">No settings available.</div>;
 
@@ -95,6 +108,7 @@ const SettingsPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="companyName">Company Name</label>
+
             <input
               type="text"
               id="companyName"
@@ -107,6 +121,7 @@ const SettingsPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="address">Address</label>
+
             <textarea
               id="address"
               name="address"
@@ -119,6 +134,7 @@ const SettingsPage: React.FC = () => {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="phone">Phone</label>
+
               <input
                 type="tel"
                 id="phone"
@@ -130,6 +146,7 @@ const SettingsPage: React.FC = () => {
 
             <div className="form-group">
               <label htmlFor="email">Email</label>
+
               <input
                 type="email"
                 id="email"
@@ -142,6 +159,7 @@ const SettingsPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="website">Website</label>
+
             <input
               type="text"
               id="website"
@@ -151,12 +169,14 @@ const SettingsPage: React.FC = () => {
             />
           </div>
         </div>
+
         <div className="settings-section">
           <h2>Regional Settings</h2>
 
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="currency">Currency</label>
+
               <select
                 id="currency"
                 name="currency"
@@ -164,18 +184,26 @@ const SettingsPage: React.FC = () => {
                 onChange={handleInputChange}
               >
                 <option value="USD">US Dollar (USD)</option>
+
                 <option value="EUR">Euro (EUR)</option>
+
                 <option value="GBP">British Pound (GBP)</option>
+
                 <option value="JPY">Japanese Yen (JPY)</option>
+
                 <option value="CAD">Canadian Dollar (CAD)</option>
+
                 <option value="AUD">Australian Dollar (AUD)</option>
+
                 <option value="INR">Indian Rupee (INR)</option>
+
                 <option value="LKR">Sri Lankan Rupee (LKR)</option>
               </select>
             </div>
 
             <div className="form-group">
               <label htmlFor="currencySymbol">Currency Symbol</label>
+
               <input
                 type="text"
                 id="currencySymbol"
@@ -189,6 +217,7 @@ const SettingsPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="language">Language</label>
+
             <select
               id="language"
               name="language"
@@ -196,14 +225,20 @@ const SettingsPage: React.FC = () => {
               onChange={handleInputChange}
             >
               <option value="en">English</option>
+
               <option value="es">Spanish</option>
+
               <option value="fr">French</option>
+
               <option value="de">German</option>
+
               <option value="zh">Chinese</option>
+
               <option value="ja">Japanese</option>
             </select>
           </div>
         </div>
+
         <div className="settings-section">
           <h2>Tax Settings</h2>
 
@@ -215,11 +250,13 @@ const SettingsPage: React.FC = () => {
               checked={formState.taxEnabled || false}
               onChange={handleInputChange}
             />
+
             <label htmlFor="taxEnabled">Enable Tax</label>
           </div>
 
           <div className="form-group">
             <label htmlFor="taxRate">Tax Rate (%)</label>
+
             <input
               type="number"
               id="taxRate"
@@ -242,14 +279,17 @@ const SettingsPage: React.FC = () => {
               onChange={handleInputChange}
               disabled={!formState.taxEnabled}
             />
+
             <label htmlFor="taxInclusivePrice">Prices include tax</label>
           </div>
         </div>
+
         <div className="settings-section">
           <h2>Receipt Settings</h2>
 
           <div className="form-group">
             <label htmlFor="receiptHeader">Receipt Header</label>
+
             <textarea
               id="receiptHeader"
               name="receiptHeader"
@@ -261,6 +301,7 @@ const SettingsPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="receiptFooter">Receipt Footer</label>
+
             <textarea
               id="receiptFooter"
               name="receiptFooter"
@@ -278,11 +319,13 @@ const SettingsPage: React.FC = () => {
               checked={formState.printReceiptAutomatically || false}
               onChange={handleInputChange}
             />
+
             <label htmlFor="printReceiptAutomatically">
               Print receipt automatically after sale
             </label>
           </div>
         </div>
+
         <div className="settings-section">
           <h2>Display Settings</h2>
 
@@ -294,11 +337,13 @@ const SettingsPage: React.FC = () => {
               checked={formState.showProductImages || false}
               onChange={handleInputChange}
             />
+
             <label htmlFor="showProductImages">Show product images</label>
           </div>
 
           <div className="form-group">
             <label htmlFor="defaultCategory">Default Category</label>
+
             <select
               id="defaultCategory"
               name="defaultCategory"
@@ -306,6 +351,7 @@ const SettingsPage: React.FC = () => {
               onChange={handleInputChange}
             >
               <option value="all">All Products</option>
+
               {/* We would fetch and map actual categories here */}
             </select>
           </div>
@@ -322,12 +368,14 @@ const SettingsPage: React.FC = () => {
               checked={formState.pinEnabled || false}
               onChange={handleInputChange}
             />
+
             <label htmlFor="pinEnabled">Enable PIN Protection</label>
           </div>
 
           {formState.pinEnabled && (
             <div className="form-group">
               <label htmlFor="pinCode">PIN Code (4 digits)</label>
+
               <input
                 type="password"
                 id="pinCode"
@@ -339,6 +387,7 @@ const SettingsPage: React.FC = () => {
                 placeholder="Enter 4-digit PIN"
                 required={formState.pinEnabled}
               />
+
               <small className="form-hint">
                 Please remember this PIN. It will be required to access the
                 application.
@@ -351,6 +400,7 @@ const SettingsPage: React.FC = () => {
           <button type="button" className="btn-secondary" onClick={handleReset}>
             Reset to Defaults
           </button>
+
           <button type="submit" className="btn-primary">
             Save Settings
           </button>

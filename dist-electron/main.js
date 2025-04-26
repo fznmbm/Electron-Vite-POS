@@ -1124,6 +1124,9 @@ electron.app.on("activate", () => {
     createWindow();
   }
 });
+electron.ipcMain.on("app:navigate", (_, page) => {
+  mainWindow.webContents.send("navigate", page);
+});
 electron.app.whenReady().then(async () => {
   try {
     await settingsService.initialize();

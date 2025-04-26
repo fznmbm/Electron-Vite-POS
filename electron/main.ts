@@ -92,6 +92,11 @@ app.on("activate", () => {
   }
 });
 
+ipcMain.on("app:navigate", (_, page) => {
+  // Send message to renderer to navigate
+  mainWindow.webContents.send("navigate", page);
+});
+
 // App initialization
 app.whenReady().then(async () => {
   try {

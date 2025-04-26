@@ -19,55 +19,106 @@ const CategoryManagement: React.FC = () => {
     name: "",
     display_order: 0,
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { refreshData } = useRefresh();
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategory.name.trim()) return;
+
+    // Manual validation instead of relying on HTML5 required attribute
+    if (!newCategory.name.trim()) {
+      setValidationError("Category name is required");
+
+      // Create a completely new object to reset the form state
+      // This is the key part that helps avoid the "inputs becoming uneditable" issue
+      setNewCategory({
+        name: "",
+        display_order: 0,
+      });
+
+      // Focus the name input after a small delay to allow React to update the DOM
+      setTimeout(() => {
+        const nameInput = document.getElementById("name");
+        if (nameInput) {
+          nameInput.focus();
+        }
+      }, 10);
+
+      return;
+    }
+
+    // Clear any previous validation error
+    setValidationError(null);
 
     try {
       await addCategory(newCategory);
-      setNewCategory({ name: "", display_order: 0 });
+
+      // Create a new object instance rather than modifying the existing one
+      setNewCategory({
+        name: "",
+        display_order: 0,
+      });
 
       refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error adding category:", err);
-      alert("Failed to add category");
+      // Use a non-blocking notification instead of alert
+      setValidationError("Failed to add category. Please try again.");
     }
   };
 
   const handleUpdateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCategory || !editingCategory.name.trim()) return;
 
-    try {
-      await updateCategory(editingCategory);
-      setEditingCategory(null);
-
-      refreshData(); // Trigger refresh
-    } catch (err) {
-      console.error("Error updating category:", err);
-      alert("Failed to update category");
-    }
-  };
-
-  const handleDeleteCategory = async (id: number) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this category? This will affect all products in this category."
-      )
-    ) {
+    // Manual validation
+    if (!editingCategory || !editingCategory.name.trim()) {
+      // For the editing modal, we can just return without resetting since we'll close the modal
       return;
     }
 
     try {
-      await deleteCategory(id);
+      await updateCategory(editingCategory);
+      setEditingCategory(null);
+      refreshData(); // Trigger refresh
+    } catch (err) {
+      console.error("Error updating category:", err);
+      // Use a non-blocking notification
+      setValidationError("Failed to update category. Please try again.");
+    }
+  };
 
+  const handleDeleteCategory = async (id: number) => {
+    // Implement a custom confirm dialog if needed instead of using window.confirm
+    try {
+      await deleteCategory(id);
       refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error deleting category:", err);
-      alert("Failed to delete category");
+      setValidationError("Failed to delete category. Please try again.");
+    }
+  };
+
+  // Show confirm dialog component
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+
+  const confirmDelete = (id: number) => {
+    setCategoryToDelete(id);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (categoryToDelete !== null) {
+      try {
+        await deleteCategory(categoryToDelete);
+        refreshData();
+        setShowConfirmDelete(false);
+        setCategoryToDelete(null);
+      } catch (err) {
+        console.error("Error deleting category:", err);
+        setValidationError("Failed to delete category. Please try again.");
+      }
     }
   };
 
@@ -77,6 +128,11 @@ const CategoryManagement: React.FC = () => {
   return (
     <div className="category-management">
       <h2>Category Management</h2>
+
+      {/* Validation error message */}
+      {validationError && (
+        <div className="validation-error">{validationError}</div>
+      )}
 
       {/* Add New Category Form */}
       <div className="form-section">
@@ -91,7 +147,7 @@ const CategoryManagement: React.FC = () => {
               onChange={(e) =>
                 setNewCategory({ ...newCategory, name: e.target.value })
               }
-              required
+              // Remove required attribute to use our manual validation
               placeholder="Enter category name"
             />
           </div>
@@ -148,9 +204,7 @@ const CategoryManagement: React.FC = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() =>
-                        category.id && handleDeleteCategory(category.id)
-                      }
+                      onClick={() => category.id && confirmDelete(category.id)}
                       className="btn-delete"
                     >
                       Delete
@@ -162,6 +216,30 @@ const CategoryManagement: React.FC = () => {
           </table>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {showConfirmDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>
+              Are you sure you want to delete this category? This will affect
+              all products in this category.
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button onClick={handleConfirmDelete} className="btn-delete">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Category Modal */}
       {editingCategory && (
@@ -181,7 +259,7 @@ const CategoryManagement: React.FC = () => {
                       name: e.target.value,
                     })
                   }
-                  required
+                  // Remove required attribute
                 />
               </div>
 

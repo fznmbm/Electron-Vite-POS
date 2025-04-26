@@ -100,6 +100,19 @@ function App() {
     //refreshTrigger,
   ]);
 
+  // In App.tsx
+  useEffect(() => {
+    const handleNavigate = (_: any, page: string) => {
+      setCurrentPage(page);
+    };
+
+    window.ipcRenderer.on("navigate", handleNavigate);
+
+    return () => {
+      window.ipcRenderer.off("navigate", handleNavigate);
+    };
+  }, []);
+
   // Cart functions
   const handleAddToCart = (product: Product) => {
     setCart((prevCart) => {
