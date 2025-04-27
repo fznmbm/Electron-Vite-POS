@@ -3,6 +3,7 @@ import { CartItem } from "../Cart/Cart";
 import Receipt from "./Receipt";
 import { useSettings } from "../../hooks/useSettings";
 import "./CheckoutModal.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [receiptTotal, setReceiptTotal] = useState(0);
 
   const { settings } = useSettings();
+  const { format } = useCurrencyFormatter();
 
   if (!isOpen) return null;
 
@@ -125,8 +127,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {item.quantity} × {item.product.name}
                   </span>
                   <span>
-                    {settings?.currencySymbol || "$"}
-                    {(item.product.price * item.quantity).toFixed(2)}
+                    {/*{settings?.currencySymbol || "$"}*/}
+                    {format(item.product.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -134,22 +136,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="summary-subtotal">
               <span>Subtotal</span>
               <span>
-                {settings?.currencySymbol || "$"}
-                {calculateSubtotal().toFixed(2)}
+                {/*{settings?.currencySymbol || "$"}*/}
+                {format(calculateSubtotal())}
               </span>
             </div>
             <div className="summary-tax">
               <span>Tax ({settings?.taxRate || 0}%)</span>
               <span>
-                {settings?.currencySymbol || "$"}
-                {calculateTax().toFixed(2)}
+                {/*{settings?.currencySymbol || "$"}*/}
+                {format(calculateTax())}
               </span>
             </div>
             <div className="summary-total">
               <span>Total</span>
               <span>
-                {settings?.currencySymbol || "$"}
-                {calculateTotal().toFixed(2)}
+                {/*{settings?.currencySymbol || "$"}*/}
+                {format(calculateTotal())}
               </span>
             </div>
           </div>

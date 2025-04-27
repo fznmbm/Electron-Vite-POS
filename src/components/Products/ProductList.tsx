@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 interface Product {
   id: number;
@@ -18,6 +19,8 @@ interface ProductListProps {
   onProductSelect: (product: Product) => void;
 }
 
+const { format } = useCurrencyFormatter();
+
 const ProductList: React.FC<ProductListProps> = ({ onProductSelect }) => {
   return (
     <div className="product-grid">
@@ -36,7 +39,7 @@ const ProductList: React.FC<ProductListProps> = ({ onProductSelect }) => {
           </div>
           <div className="product-info">
             <h3>{product.name}</h3>
-            <p>${product.price.toFixed(2)}</p>
+            <p>{format(product.price)}</p>
           </div>
         </div>
       ))}

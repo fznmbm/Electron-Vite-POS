@@ -1,7 +1,8 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { CartItem } from "../Cart/Cart";
 import { useSettings } from "../../hooks/useSettings";
 import "./Receipt.css";
+import { useCurrencyFormatter } from "../../utils/formatCurrency";
 
 interface ReceiptProps {
   orderNumber: number;
@@ -24,8 +25,38 @@ const Receipt: React.FC<ReceiptProps> = ({
   onPrint,
   onClose,
 }) => {
-  const { settings } = useSettings();
+  //const { settings } = useSettings();
+  const { settings, loading, error, fetchSettings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [receiptHeader, setReceiptHeader] = useState<string>(
+    "Thank you for your purchase!"
+  );
+  const [receiptFooter, setReceiptFooter] =
+    useState<string>("Please come again!");
+  const { format } = useCurrencyFormatter();
+
+  // Make sure we have the latest settings
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  // Update header and footer when settings change
+  useEffect(() => {
+    if (settings) {
+      console.log("Receipt settings loaded:", {
+        header: settings.receiptHeader,
+        footer: settings.receiptFooter,
+      });
+
+      // Set header from settings or use default
+      setReceiptHeader(
+        settings.receiptHeader || "Thank you for your purchase!"
+      );
+
+      // Set footer from settings or use default
+      setReceiptFooter(settings.receiptFooter || "Please come again!");
+    }
+  }, [settings]);
 
   // Format date
   const formatDate = (date: Date) => {
@@ -47,6 +78,14 @@ const Receipt: React.FC<ReceiptProps> = ({
     window.print();
   };
 
+  if (loading) {
+    return <div className="loading">Loading receipt information...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading settings for receipt:", error);
+  }
+
   return (
     <div className="receipt-modal-overlay">
       <div className="receipt-container">
@@ -63,9 +102,7 @@ const Receipt: React.FC<ReceiptProps> = ({
             <p className="receipt-date">{formatDate(new Date())}</p>
           </div>
 
-          <div className="receipt-custom-header">
-            {settings?.receiptHeader || "Thank you for your purchase!"}
-          </div>
+          <div className="receipt-custom-header">{receiptHeader}</div>
 
           <div className="receipt-items">
             <table>
@@ -82,14 +119,8 @@ const Receipt: React.FC<ReceiptProps> = ({
                   <tr key={index}>
                     <td>{item.product.name}</td>
                     <td>{item.quantity}</td>
-                    <td>
-                      {settings?.currencySymbol || "$"}
-                      {item.product.price.toFixed(2)}
-                    </td>
-                    <td>
-                      {settings?.currencySymbol || "$"}
-                      {(item.product.price * item.quantity).toFixed(2)}
-                    </td>
+                    <td>{format(item.product.price)}</td>
+                    <td>{format(item.product.price * item.quantity)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -99,38 +130,27 @@ const Receipt: React.FC<ReceiptProps> = ({
           <div className="receipt-totals">
             <div className="receipt-total-row">
               <span>Subtotal:</span>
-              <span>
-                {settings?.currencySymbol || "$"}
-                {subtotal.toFixed(2)}
-              </span>
+              <span>{format(subtotal)}</span>
             </div>
             <div className="receipt-total-row">
               <span>Tax ({settings?.taxRate || 0}%):</span>
-              <span>
-                {settings?.currencySymbol || "$"}
-                {tax.toFixed(2)}
-              </span>
+              <span>{format(tax)}</span>
             </div>
             <div className="receipt-total-row grand-total">
               <span>Total:</span>
-              <span>
-                {settings?.currencySymbol || "$"}
-                {total.toFixed(2)}
-              </span>
+              <span>{format(total)}</span>
             </div>
           </div>
 
           <div className="receipt-payment">
             <p>Payment Method: {paymentMethod}</p>
             <p>
-              Amount Paid: {settings?.currencySymbol || "$"}
-              {total.toFixed(2)}
+              Amount Paid:
+              {format(total)}
             </p>
           </div>
 
-          <div className="receipt-custom-footer">
-            {settings?.receiptFooter || "Please come again!"}
-          </div>
+          <div className="receipt-custom-footer">{receiptFooter}</div>
         </div>
 
         <div className="receipt-actions">

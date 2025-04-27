@@ -31,20 +31,77 @@ const ProductManagement: React.FC = () => {
     image: "",
   });
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // State for delete confirmation modal
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+
   const isLoading = productsLoading || categoriesLoading;
   const error = productsError || categoriesError;
   const { format } = useCurrencyFormatter();
   const { refreshData } = useRefresh();
 
+  // Reset form validation messages when input changes
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+
+    if (validationError) {
+      setValidationError(null);
+    }
+
+    if (name === "price" && type === "number") {
+      setNewProduct({
+        ...newProduct,
+        [name]: parseFloat(value) || 0,
+      });
+    } else if (name === "category_id") {
+      setNewProduct({
+        ...newProduct,
+        [name]: parseInt(value) || 0,
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        [name]: value,
+      });
+    }
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name.trim() || newProduct.price <= 0) {
-      alert("Please enter a valid product name and price");
+    console.log("Submitting new product:", newProduct);
+
+    // Validation
+    if (!newProduct.name.trim()) {
+      console.log("Validation failed: Product name is required");
+      setValidationError("Product name is required");
       return;
     }
 
+    if (newProduct.price <= 0) {
+      console.log("Validation failed: Price must be greater than 0");
+      setValidationError("Price must be greater than 0");
+      return;
+    }
+
+    if (!newProduct.category_id) {
+      console.log("Validation failed: Please select a category");
+      setValidationError("Please select a category");
+      return;
+    }
+
+    setValidationError(null);
+
     try {
-      await addProduct(newProduct);
+      console.log("Attempting to add product to database:", newProduct);
+      const newId = await addProduct(newProduct);
+      console.log("Product added successfully with ID:", newId);
+
+      // Reset form
       setNewProduct({
         name: "",
         price: 0,
@@ -53,50 +110,88 @@ const ProductManagement: React.FC = () => {
         image: "",
       });
 
+      setSuccessMessage("Product added successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+
       refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error adding product:", err);
-      alert("Failed to add product");
+      setValidationError("Failed to add product. Please try again.");
     }
   };
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !editingProduct ||
-      !editingProduct.name.trim() ||
-      editingProduct.price <= 0
-    ) {
-      alert("Please enter a valid product name and price");
+    console.log("Updating product:", editingProduct);
+
+    if (!editingProduct) return;
+
+    if (!editingProduct.name.trim()) {
+      setValidationError("Product name is required");
       return;
     }
 
+    if (editingProduct.price <= 0) {
+      setValidationError("Price must be greater than 0");
+      return;
+    }
+
+    if (!editingProduct.category_id) {
+      setValidationError("Please select a category");
+      return;
+    }
+
+    setValidationError(null);
+
     try {
-      await updateProduct(editingProduct);
+      const success = await updateProduct(editingProduct);
+      console.log("Product update result:", success);
+
       setEditingProduct(null);
-      refreshData(); //
-      // Trigger refresh
-      console.log("Product updated successfully:", editingProduct);
-      console.log("Product updated successfully:", refreshData());
+      setSuccessMessage("Product updated successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error updating product:", err);
-      alert("Failed to update product");
+      setValidationError("Failed to update product. Please try again.");
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) {
-      return;
-    }
+  const confirmDelete = (id: number) => {
+    console.log("Confirming delete for product ID:", id);
+    setProductToDelete(id);
+    setShowConfirmDelete(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (productToDelete === null) return;
+
+    console.log("Deleting product ID:", productToDelete);
 
     try {
-      await deleteProduct(id);
+      const success = await deleteProduct(productToDelete);
+      console.log("Product deletion result:", success);
+
+      setShowConfirmDelete(false);
+      setProductToDelete(null);
+      setSuccessMessage("Product deleted successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+
       refreshData(); // Trigger refresh
     } catch (err) {
       console.error("Error deleting product:", err);
-      alert("Failed to delete product");
+      setValidationError("Failed to delete product. Please try again.");
+      setShowConfirmDelete(false);
     }
   };
+
+  // Log products when they change
+  useEffect(() => {
+    if (!productsLoading && products.length > 0) {
+      console.log("Products loaded:", products.length);
+    }
+  }, [products, productsLoading]);
 
   if (isLoading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -104,6 +199,14 @@ const ProductManagement: React.FC = () => {
   return (
     <div className="product-management">
       <h2>Product Management</h2>
+
+      {validationError && (
+        <div className="validation-error">{validationError}</div>
+      )}
+
+      {successMessage && (
+        <div className="success-message">{successMessage}</div>
+      )}
 
       {/* Add New Product Form */}
       <div className="form-section">
@@ -113,12 +216,10 @@ const ProductManagement: React.FC = () => {
             <label htmlFor="name">Product Name</label>
             <input
               id="name"
+              name="name"
               type="text"
               value={newProduct.name}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, name: e.target.value })
-              }
-              required
+              onChange={handleInputChange}
               placeholder="Enter product name"
             />
           </div>
@@ -127,33 +228,23 @@ const ProductManagement: React.FC = () => {
             <label htmlFor="price">Price</label>
             <input
               id="price"
+              name="price"
               type="number"
               step="0.01"
               min="0"
               value={newProduct.price}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  price: parseFloat(e.target.value),
-                })
-              }
-              required
+              onChange={handleInputChange}
               placeholder="Enter product price"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="category">Category</label>
+            <label htmlFor="category_id">Category</label>
             <select
-              id="category"
-              value={newProduct.category_id}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  category_id: parseInt(e.target.value),
-                })
-              }
-              required
+              id="category_id"
+              name="category_id"
+              value={newProduct.category_id || ""}
+              onChange={handleInputChange}
             >
               <option value="">Select Category</option>
               {categories.map((category) => (
@@ -168,11 +259,10 @@ const ProductManagement: React.FC = () => {
             <label htmlFor="barcode">Barcode (Optional)</label>
             <input
               id="barcode"
+              name="barcode"
               type="text"
               value={newProduct.barcode || ""}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, barcode: e.target.value })
-              }
+              onChange={handleInputChange}
               placeholder="Enter product barcode"
             />
           </div>
@@ -181,11 +271,10 @@ const ProductManagement: React.FC = () => {
             <label htmlFor="image">Image URL (Optional)</label>
             <input
               id="image"
+              name="image"
               type="text"
               value={newProduct.image || ""}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, image: e.target.value })
-              }
+              onChange={handleInputChange}
               placeholder="Enter image URL"
             />
           </div>
@@ -198,7 +287,7 @@ const ProductManagement: React.FC = () => {
 
       {/* Products List */}
       <div className="data-section">
-        <h3>Products</h3>
+        <h3>Products ({products.length})</h3>
 
         {products.length === 0 ? (
           <p>No products found. Add your first product above.</p>
@@ -238,15 +327,13 @@ const ProductManagement: React.FC = () => {
                   <td>{product.barcode || "N/A"}</td>
                   <td className="actions">
                     <button
-                      onClick={() => setEditingProduct(product)}
+                      onClick={() => setEditingProduct({ ...product })}
                       className="btn-edit"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() =>
-                        product.id && handleDeleteProduct(product.id)
-                      }
+                      onClick={() => product.id && confirmDelete(product.id)}
                       className="btn-delete"
                     >
                       Delete
@@ -258,6 +345,27 @@ const ProductManagement: React.FC = () => {
           </table>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {showConfirmDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this product?</p>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button onClick={handleDeleteProduct} className="btn-delete">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Product Modal */}
       {editingProduct && (
@@ -277,7 +385,6 @@ const ProductManagement: React.FC = () => {
                       name: e.target.value,
                     })
                   }
-                  required
                 />
               </div>
 
@@ -292,10 +399,9 @@ const ProductManagement: React.FC = () => {
                   onChange={(e) =>
                     setEditingProduct({
                       ...editingProduct,
-                      price: parseFloat(e.target.value),
+                      price: parseFloat(e.target.value) || 0,
                     })
                   }
-                  required
                 />
               </div>
 
@@ -303,14 +409,13 @@ const ProductManagement: React.FC = () => {
                 <label htmlFor="edit-category">Category</label>
                 <select
                   id="edit-category"
-                  value={editingProduct.category_id}
+                  value={editingProduct.category_id || ""}
                   onChange={(e) =>
                     setEditingProduct({
                       ...editingProduct,
-                      category_id: parseInt(e.target.value),
+                      category_id: parseInt(e.target.value) || 0,
                     })
                   }
-                  required
                 >
                   <option value="">Select Category</option>
                   {categories.map((category) => (

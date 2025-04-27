@@ -1,24 +1,45 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 import { useSettings } from "../../hooks/useSettings";
-
 import { StoreSettings } from "../../../electron/settings";
-
 import "./SettingsPage.css";
+
+// Default settings to use when resetting
+const defaultSettings: StoreSettings = {
+  companyName: "My POS Store",
+  address: "123 Main Street, City, State, ZIP",
+  phone: "(123) 456-7890",
+  email: "info@myposstore.com",
+  website: "www.myposstore.com",
+  currency: "USD",
+  currencySymbol: "$",
+  language: "en",
+  taxEnabled: true,
+  taxRate: 8.5,
+  taxInclusivePrice: false,
+  receiptHeader: "Thank you for your purchase!",
+  receiptFooter: "Please come again!",
+  printReceiptAutomatically: true,
+  showProductImages: true,
+  defaultCategory: "all",
+  pinEnabled: false,
+  pinCode: "",
+};
 
 const SettingsPage: React.FC = () => {
   const { settings, loading, error, updateSettings, resetSettings } =
     useSettings();
-
   const [formState, setFormState] = useState<Partial<StoreSettings>>({});
-
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // State for confirmation modal
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
 
   // Initialize form state when settings are loaded
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (settings) {
-      setFormState(settings);
+      // Create a fresh copy of settings
+      setFormState({ ...settings });
     }
   }, [settings]);
 
@@ -29,10 +50,7 @@ const SettingsPage: React.FC = () => {
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
 
-    // Handle different input types
-
     let parsedValue: any = value;
-
     if (type === "checkbox") {
       parsedValue = (e.target as HTMLInputElement).checked;
     } else if (type === "number") {
@@ -41,7 +59,6 @@ const SettingsPage: React.FC = () => {
 
     setFormState((prev) => ({
       ...prev,
-
       [name]: parsedValue,
     }));
   };
@@ -49,48 +66,50 @@ const SettingsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Basic validation
+    if (!formState.companyName || formState.companyName.trim() === "") {
+      setValidationError("Company name is required");
+      return;
+    }
+
+    setValidationError(null);
+
     try {
       await updateSettings(formState);
-
       setSuccessMessage("Settings saved successfully!");
-
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error("Error saving settings:", err);
+      setValidationError("Failed to save settings. Please try again.");
     }
   };
 
-  const handleReset = async () => {
-    const confirm = window.confirm(
-      "Are you sure you want to reset all settings to default values?"
-    );
+  const handleReset = () => {
+    // Show confirmation modal
+    setShowConfirmReset(true);
+  };
 
-    if (confirm) {
-      try {
-        await resetSettings();
+  const handleConfirmReset = async () => {
+    try {
+      // Reset settings in the database
+      await resetSettings();
 
-        // Then fetch the latest settings
+      // Set to predefined defaults
+      setFormState({ ...defaultSettings });
 
-        const updatedSettings = await window.settings.getAll();
-
-        // Update both the global settings state and the local form state
-
-        setFormState(updatedSettings);
-
-        setSuccessMessage("Settings reset to defaults!");
-
-        setTimeout(() => setSuccessMessage(null), 2000);
-      } catch (err) {
-        console.error("Error resetting settings:", err);
-      }
+      setShowConfirmReset(false);
+      setSuccessMessage("Settings reset to defaults!");
+      setTimeout(() => setSuccessMessage(null), 2000);
+    } catch (err) {
+      console.error("Error resetting settings:", err);
+      setValidationError("Failed to reset settings. Please try again.");
+      setShowConfirmReset(false);
     }
   };
 
   if (loading)
     return <div className="settings-loading">Loading settings...</div>;
-
   if (error) return <div className="settings-error">Error: {error}</div>;
-
   if (!settings)
     return <div className="settings-error">No settings available.</div>;
 
@@ -100,6 +119,33 @@ const SettingsPage: React.FC = () => {
 
       {successMessage && (
         <div className="settings-success-message">{successMessage}</div>
+      )}
+
+      {validationError && (
+        <div className="validation-error">{validationError}</div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmReset && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Reset</h3>
+            <p>
+              Are you sure you want to reset all settings to default values?
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowConfirmReset(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button onClick={handleConfirmReset} className="btn-primary">
+                Reset Settings
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>

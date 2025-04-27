@@ -27,6 +27,14 @@ const OrdersPage: React.FC = () => {
     end: new Date().toISOString().split("T")[0], // today
   });
 
+  // State for delete confirmation modal
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
+
+  // State for error message modal
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
   // Load order details when an order is selected
   const loadOrderDetails = async (orderId: number) => {
     try {
@@ -34,6 +42,8 @@ const OrdersPage: React.FC = () => {
       setSelectedOrder(order || null);
     } catch (error) {
       console.error("Error loading order details:", error);
+      setErrorMessage("Failed to load order details. Please try again.");
+      setShowErrorModal(true);
     }
   };
 
@@ -45,18 +55,29 @@ const OrdersPage: React.FC = () => {
 
   // Apply date filter
   const applyDateFilter = async () => {
-    await getOrdersByDateRange(dateFilter.start, dateFilter.end);
+    try {
+      await getOrdersByDateRange(dateFilter.start, dateFilter.end);
+    } catch (error) {
+      console.error("Error applying date filter:", error);
+      setErrorMessage("Failed to filter orders. Please try again.");
+      setShowErrorModal(true);
+    }
   };
 
   // Reset filter and load all orders
   const resetFilter = () => {
     setDateFilter({
-      start: new Date(new Date().setDate(new Date().getDate() - 30))
-        .toISOString()
-        .split("T")[0],
+      // start: new Date(new Date().setDate(new Date().getDate() - 30))
+      start: new Date().toISOString().split("T")[0],
       end: new Date().toISOString().split("T")[0],
     });
-    fetchOrders();
+    try {
+      fetchOrders();
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      setErrorMessage("Failed to reset filter. Please try again.");
+      setShowErrorModal(true);
+    }
   };
 
   // Format date for display
@@ -71,25 +92,41 @@ const OrdersPage: React.FC = () => {
     }).format(date);
   };
 
+  // Initiate order deletion process - show confirmation dialog
+  const confirmDeleteOrder = (orderId: number) => {
+    console.log("Confirming delete for order ID:", orderId);
+    setOrderToDelete(orderId);
+    setShowConfirmDelete(true);
+  };
+
   // Handle order deletion
-  const handleDeleteOrder = async (orderId: number) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this order? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+  const handleDeleteOrder = async () => {
+    if (orderToDelete === null) return;
+
+    console.log("Deleting order ID:", orderToDelete);
 
     try {
-      await deleteOrder(orderId);
-      if (selectedOrder?.id === orderId) {
+      const success = await deleteOrder(orderToDelete);
+      console.log("Order deletion result:", success);
+
+      if (selectedOrder?.id === orderToDelete) {
         setSelectedOrder(null);
       }
+
+      setShowConfirmDelete(false);
+      setOrderToDelete(null);
     } catch (error) {
       console.error("Error deleting order:", error);
-      alert("Failed to delete order. Please try again.");
+      setShowConfirmDelete(false);
+      setErrorMessage("Failed to delete order. Please try again.");
+      setShowErrorModal(true);
     }
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage(null);
   };
 
   if (loading) return <div className="loading">Loading orders...</div>;
@@ -170,7 +207,7 @@ const OrdersPage: React.FC = () => {
                     className="btn-delete order-delete"
                     onClick={(e) => {
                       e.stopPropagation();
-                      order.id && handleDeleteOrder(order.id);
+                      order.id && confirmDeleteOrder(order.id);
                     }}
                   >
                     ×
@@ -251,7 +288,7 @@ const OrdersPage: React.FC = () => {
                 <button
                   className="btn-delete"
                   onClick={() =>
-                    selectedOrder.id && handleDeleteOrder(selectedOrder.id)
+                    selectedOrder.id && confirmDeleteOrder(selectedOrder.id)
                   }
                 >
                   Delete Order
@@ -265,6 +302,45 @@ const OrdersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showConfirmDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>
+              Are you sure you want to delete this order? This action cannot be
+              undone.
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button onClick={handleDeleteOrder} className="btn-delete">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error modal */}
+      {showErrorModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Error</h3>
+            <p>{errorMessage}</p>
+            <div className="modal-actions">
+              <button onClick={closeErrorModal} className="btn-primary">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

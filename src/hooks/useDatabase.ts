@@ -254,7 +254,17 @@ export function useOrders() {
     async (startDate: string, endDate: string) => {
       try {
         setLoading(true);
-        const data = await window.db.getOrdersByDateRange(startDate, endDate);
+
+        // Create an adjusted end date that includes the full day
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const formattedEndDate = adjustedEndDate.toISOString().split("T")[0];
+
+        const data = await window.db.getOrdersByDateRange(
+          startDate,
+          formattedEndDate
+        );
+
         setOrders(data);
         setError(null);
       } catch (err) {
