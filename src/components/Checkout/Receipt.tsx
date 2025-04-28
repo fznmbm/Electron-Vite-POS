@@ -11,6 +11,8 @@ interface ReceiptProps {
   subtotal: number;
   tax: number;
   total: number;
+  cashTendered?: number;
+  changeAmount?: number;
   onPrint: () => void;
   onClose: () => void;
 }
@@ -22,10 +24,11 @@ const Receipt: React.FC<ReceiptProps> = ({
   subtotal,
   tax,
   total,
+  cashTendered,
+  changeAmount,
   onPrint,
   onClose,
 }) => {
-  //const { settings } = useSettings();
   const { settings, loading, error, fetchSettings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [receiptHeader, setReceiptHeader] = useState<string>(
@@ -144,10 +147,15 @@ const Receipt: React.FC<ReceiptProps> = ({
 
           <div className="receipt-payment">
             <p>Payment Method: {paymentMethod}</p>
-            <p>
-              Amount Paid:
-              {format(total)}
-            </p>
+            {paymentMethod === "cash" && cashTendered && (
+              <>
+                <p>Cash Tendered: {format(cashTendered)}</p>
+                {changeAmount && changeAmount > 0 && (
+                  <p>Change: {format(changeAmount)}</p>
+                )}
+              </>
+            )}
+            <p>Amount Paid: {format(total)}</p>
           </div>
 
           <div className="receipt-custom-footer">{receiptFooter}</div>

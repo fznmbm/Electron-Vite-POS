@@ -1,49 +1,91 @@
 .modal-overlay {
   position: fixed;
+
   top: 0;
+
   left: 0;
+
   right: 0;
+
   bottom: 0;
+
   background-color: rgba(0, 0, 0, 0.5);
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   z-index: 1000;
 }
 
 .checkout-modal {
   background-color: white;
+
   border-radius: 8px;
+
   width: 90%;
+
   max-width: 500px;
+
   max-height: 90vh;
+
   overflow-y: auto;
+
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
   display: flex;
+
   justify-content: space-between;
+
   align-items: center;
+
   padding: 1rem;
+
   border-bottom: 1px solid #e0e0e0;
 }
 
 .modal-header h2 {
   margin: 0;
+
   font-size: 1.25rem;
 }
 
 .close-button {
   background: none;
+
   border: none;
+
   font-size: 1.5rem;
+
   cursor: pointer;
+
   color: #757575;
 }
 
 .modal-body {
   padding: 1rem;
+}
+
+/* Order details header */
+
+.order-details-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  font-size: 0.9rem;
+
+  color: #555;
+
+  margin-bottom: 1rem;
+
+  padding-bottom: 0.5rem;
+
+  border-bottom: 1px dashed #e0e0e0;
 }
 
 .order-summary {
@@ -52,7 +94,9 @@
 
 .order-summary h3 {
   margin-top: 0;
+
   margin-bottom: 0.75rem;
+
   font-size: 1.125rem;
 }
 
@@ -62,17 +106,25 @@
 
 .summary-item {
   display: flex;
+
   justify-content: space-between;
+
   padding: 0.5rem 0;
+
   border-bottom: 1px solid #f0f0f0;
 }
 
 .summary-total {
   display: flex;
+
   justify-content: space-between;
+
   font-weight: 600;
+
   font-size: 1.125rem;
+
   padding-top: 0.75rem;
+
   border-top: 1px solid #e0e0e0;
 }
 
@@ -82,46 +134,185 @@
 
 .payment-methods h3 {
   margin-top: 0;
+
   margin-bottom: 0.75rem;
+
   font-size: 1.125rem;
 }
 
 .payment-options {
   display: flex;
+
   gap: 1.5rem;
 }
 
 .payment-options label {
   display: flex;
+
   align-items: center;
+
   gap: 0.5rem;
+
   cursor: pointer;
+}
+
+/* Cash tendered section */
+
+.cash-payment-details {
+  background-color: #f9f9f9;
+
+  padding: 1rem;
+
+  border-radius: 6px;
+
+  margin-bottom: 1.5rem;
+
+  border: 1px solid #e0e0e0;
+}
+
+.cash-tendered-group {
+  margin-bottom: 0.75rem;
+}
+
+.cash-tendered-group label {
+  display: block;
+
+  margin-bottom: 0.5rem;
+
+  font-weight: 500;
+}
+
+.cash-input-wrapper {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+
+  left: 10px;
+
+  color: #666;
+}
+
+/* Fix the input to make it accept values properly */
+
+#cash-tendered {
+  width: 100%;
+
+  padding: 0.75rem;
+
+  text-align: right; /* Right align the text */
+
+  border: 1px solid #ddd;
+
+  border-radius: 4px;
+
+  font-size: 1rem;
+
+  font-weight: bold; /* Make the value bold */
+}
+
+#cash-tendered.error {
+  border-color: #f44336;
+
+  background-color: #ffebee;
+}
+
+.cash-error-message {
+  color: #f44336;
+
+  font-size: 0.875rem;
+
+  margin-top: 0.25rem;
+}
+
+.change-amount-display {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 0.75rem;
+
+  background-color: #e8f5e9;
+
+  border-radius: 4px;
+
+  border-left: 3px solid #4caf50;
+
+  min-height: 3rem; /* Ensures consistent height */
+}
+
+/* When there's no change to show, keep the element but make it transparent */
+
+.change-amount-display:empty {
+  opacity: 0;
+
+  visibility: hidden;
+}
+
+/* When there is change, ensure it's visible */
+
+.change-amount-display:not(:empty) {
+  opacity: 1;
+
+  visibility: visible;
+
+  transition: opacity 0.2s ease;
+}
+
+.change-value {
+  font-weight: bold; /* Make the change value bold */
+
+  color: #2e7d32;
+
+  font-size: 1.1rem;
 }
 
 .modal-actions {
   display: flex;
+
   justify-content: flex-end;
+
   gap: 1rem;
+
   margin-top: 1.5rem;
 }
 
 .cancel-button {
   padding: 0.75rem 1rem;
+
   background-color: #f0f0f0;
+
   border: none;
+
   border-radius: 4px;
+
   font-size: 1rem;
+
   cursor: pointer;
 }
 
 .complete-button {
   padding: 0.75rem 1rem;
+
   background-color: #4caf50;
+
   color: white;
+
   border: none;
+
   border-radius: 4px;
+
   font-size: 1rem;
+
   font-weight: 500;
+
   cursor: pointer;
 }
 
@@ -129,9 +320,19 @@
   background-color: #388e3c;
 }
 
+.complete-button:disabled {
+  background-color: #a5d6a7;
+
+  cursor: not-allowed;
+
+  opacity: 0.8;
+}
+
 .complete-button.processing {
   background-color: #8bc34a;
+
   cursor: not-allowed;
+
   opacity: 0.8;
 }
 
@@ -142,8 +343,34 @@
 .summary-subtotal,
 .summary-tax {
   display: flex;
+
   justify-content: space-between;
+
   padding: 0.5rem 0;
+
   border-top: 1px solid #f0f0f0;
+
   color: #666;
+}
+
+/* Add this to your CheckoutModal.css file */
+
+.cash-input-wrapper input {
+  width: 100%;
+
+  padding: 0.75rem 0.75rem 0.75rem 1.75rem;
+
+  border: 1px solid #ddd;
+
+  border-radius: 4px;
+
+  font-size: 1rem;
+}
+
+/* For auto-focusing the input when switching payment methods */
+
+.cash-input-wrapper input:focus {
+  outline-color: #4caf50;
+
+  border-color: #4caf50;
 }
