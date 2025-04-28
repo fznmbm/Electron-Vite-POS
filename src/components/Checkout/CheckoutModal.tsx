@@ -4,6 +4,7 @@ import Receipt from "./Receipt";
 import { useSettings } from "../../hooks/useSettings";
 import "./CheckoutModal.css";
 import { useCurrencyFormatter } from "../../utils/formatCurrency";
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,6 +15,7 @@ interface CheckoutModalProps {
     changeAmount?: number
   ) => Promise<number>;
 }
+
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
   onClose,
@@ -24,48 +26,59 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [processing, setProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+
   // Receipt data
   const [receiptItems, setReceiptItems] = useState<CartItem[]>([]);
   const [receiptSubtotal, setReceiptSubtotal] = useState(0);
   const [receiptTax, setReceiptTax] = useState(0);
   const [receiptTotal, setReceiptTotal] = useState(0);
+
   // Cash tendered and change
-  const [cashTendered, setCashTendered] = useState<number>(0);
+  const [cashTendered, setCashTendered] = useState<string>("");
   const [changeAmount, setChangeAmount] = useState(0);
   const [cashTenderedError, setCashTenderedError] = useState<string | null>(
     null
   );
+
   // Reference to the cash input for focus management
   const cashInputRef = useRef<HTMLInputElement>(null);
   const modalOpenedRef = useRef(false);
+
   const { settings } = useSettings();
   const { format } = useCurrencyFormatter();
+
   // Calculate total when cart items change
   const total = calculateTotal();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  console.log("check error message clearing" + errorMessage);
   // Effect to update cash tendered default when total changes
   useEffect(() => {
-    if (paymentMethod === "cash" && cashTendered < total) {
-      setCashTendered(Math.ceil(total)); // Round up to nearest whole number
-      setCashTendered(total);
+    if (
+      isOpen &&
+      paymentMethod === "cash" &&
+      (!cashTendered || parseFloat(cashTendered) < total)
+    ) {
+      setCashTendered(total.toFixed(2));
     }
-  }, [total, paymentMethod, cashTendered]);
+  }, [total, paymentMethod, isOpen]);
+
   // Effect to calculate change amount
   useEffect(() => {
-    const change = cashTendered - total;
+    const cashAmount = cashTendered ? parseFloat(cashTendered) : 0;
+    const change = cashAmount - total;
     setChangeAmount(change > 0 ? change : 0);
   }, [cashTendered, total]);
+
   // Effect to handle modal opening and auto-focus
   useEffect(() => {
     if (isOpen && !modalOpenedRef.current) {
       modalOpenedRef.current = true;
+
       // Set initial cash tendered value
       if (paymentMethod === "cash") {
-        //setCashTendered(Math.ceil(total));
-        setCashTendered(total);
+        setCashTendered(total.toFixed(2));
       }
+
       // Auto-focus the cash input after modal renders
       setTimeout(() => {
         if (cashInputRef.current && paymentMethod === "cash") {
@@ -78,12 +91,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       modalOpenedRef.current = false;
     }
   }, [isOpen, paymentMethod, total]);
+
   // Handle payment method change
   const handlePaymentMethodChange = (method: string) => {
     setPaymentMethod(method);
+
     if (method === "cash") {
-      //setCashTendered(Math.ceil(total));
-      setCashTendered(total);
+      setCashTendered(total.toFixed(2));
+
       // Focus the cash input field when switching to cash
       setTimeout(() => {
         if (cashInputRef.current) {
@@ -92,59 +107,64 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
       }, 100);
     }
+
     setCashTenderedError(null);
   };
+
   if (!isOpen) return null;
+
   function calculateSubtotal() {
     return cartItems.reduce((total, item) => {
       return total + item.product.price * item.quantity;
     }, 0);
   }
+
   function calculateTax() {
     const subtotal = calculateSubtotal();
     const taxRate = settings?.taxEnabled ? settings.taxRate / 100 : 0;
     return subtotal * taxRate;
   }
+
   function calculateTotal() {
     return calculateSubtotal() + calculateTax();
   }
+
   const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow empty input for backspacing
 
+    // Allow empty input for backspacing
     if (value === "") {
-      setCashTendered(0);
+      setCashTendered("");
       setCashTenderedError("Please enter the amount received");
       return;
     }
+
     // First remove any non-numeric characters (except decimal point)
     const cleanValue = value.replace(/[^\d.]/g, "");
 
-    // Handle invalid input
-    if (cleanValue === "") {
-      setCashTendered(0);
+    // Ensure we have only one decimal point
+    const parts = cleanValue.split(".");
+    const formattedValue =
+      parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : cleanValue;
+
+    // Check if valid number
+    const numValue = parseFloat(formattedValue);
+    if (isNaN(numValue)) {
       setCashTenderedError("Please enter a valid amount");
       return;
     }
 
-    const numValue = parseFloat(cleanValue);
+    // Update the value
+    setCashTendered(formattedValue);
 
-    // Handle invalid numbers
-    if (isNaN(numValue)) {
-      return;
-    }
-    // Check if valid number
-    if (!isNaN(numValue)) {
-      setCashTendered(numValue);
-
-      // Validate amount is sufficient
-      if (numValue < total) {
-        setCashTenderedError("Amount is less than the total");
-      } else {
-        setCashTenderedError(null);
-      }
+    // Validate amount is sufficient
+    if (numValue < total) {
+      setCashTenderedError("Amount is less than the total");
+    } else {
+      setCashTenderedError(null);
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -152,28 +172,35 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     // Validate cash payment
     if (paymentMethod === "cash") {
-      if (cashTendered < total) {
+      const cashAmount = cashTendered ? parseFloat(cashTendered) : 0;
+      if (cashAmount < total) {
         setCashTenderedError("Amount is less than the total");
         return;
       }
     }
+
     try {
       setProcessing(true);
+
       // Store the current values for the receipt
       const subtotal = calculateSubtotal();
       const tax = calculateTax();
       const totalAmount = calculateTotal();
+
       // Save a copy of the cart items for the receipt
       setReceiptItems([...cartItems]);
       setReceiptSubtotal(subtotal);
       setReceiptTax(tax);
       setReceiptTotal(totalAmount);
+
       // Call the onCompleteCheckout function with payment details
+      const cashAmount = cashTendered ? parseFloat(cashTendered) : 0;
       const newOrderId = await onCompleteCheckout(
         paymentMethod,
-        paymentMethod === "cash" ? cashTendered : undefined,
+        paymentMethod === "cash" ? cashAmount : undefined,
         changeAmount > 0 ? changeAmount : undefined
       );
+
       // Set the order number and show the receipt
       setOrderNumber(newOrderId);
       setShowReceipt(true);
@@ -186,10 +213,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setProcessing(false);
     }
   };
+
   const handleCloseReceipt = () => {
     setShowReceipt(false);
     onClose();
   };
+
   // If showing receipt, render the Receipt component with the saved items
   if (showReceipt && orderNumber !== null) {
     return (
@@ -200,13 +229,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         subtotal={receiptSubtotal}
         tax={receiptTax}
         total={receiptTotal}
-        cashTendered={paymentMethod === "cash" ? cashTendered : undefined}
+        cashTendered={
+          paymentMethod === "cash" && cashTendered
+            ? parseFloat(cashTendered)
+            : undefined
+        }
         changeAmount={changeAmount > 0 ? changeAmount : undefined}
         onPrint={() => console.log("Printing receipt...")}
         onClose={handleCloseReceipt}
       />
     );
   }
+
   return (
     <div className="modal-overlay">
       <div className="checkout-modal">
@@ -255,7 +289,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="payment-options">
                 <label>
                   <input
-                    autoFocus={paymentMethod === "cash"}
                     type="radio"
                     name="paymentMethod"
                     value="cash"
@@ -283,19 +316,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="cash-tendered-group">
                   <label htmlFor="cash-tendered">Cash Tendered:</label>
                   <div className="cash-input-wrapper">
-                    {/* <span className="currency-symbol">
-                      {settings?.currencySymbol || "Rs."}
-                    </span> */}
+                    <span className="currency-symbol">
+                      {settings?.currencySymbol || "$"}
+                    </span>
                     <input
                       ref={cashInputRef}
                       id="cash-tendered"
                       type="text"
-                      value={cashTendered === 0 ? "" : cashTendered}
+                      value={cashTendered}
                       onChange={handleCashTenderedChange}
+                      onFocus={(e) => e.target.select()}
                       className={cashTenderedError ? "error" : ""}
                       disabled={processing}
                       inputMode="decimal"
-                      autoFocus={paymentMethod === "cash"}
                     />
                   </div>
                   {cashTenderedError && (
@@ -324,7 +357,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 className={`complete-button ${processing ? "processing" : ""}`}
                 disabled={
                   processing ||
-                  (paymentMethod === "cash" && cashTendered < total)
+                  (paymentMethod === "cash" &&
+                    (!cashTendered || parseFloat(cashTendered) < total))
                 }
               >
                 {processing ? "Processing..." : "Complete Payment"}
@@ -336,4 +370,5 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     </div>
   );
 };
+
 export default CheckoutModal;
