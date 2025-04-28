@@ -4,6 +4,7 @@ import Receipt from "./Receipt";
 import { useSettings } from "../../hooks/useSettings";
 import "./CheckoutModal.css";
 import { useCurrencyFormatter } from "../../utils/formatCurrency";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -32,6 +33,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [receiptSubtotal, setReceiptSubtotal] = useState(0);
   const [receiptTax, setReceiptTax] = useState(0);
   const [receiptTotal, setReceiptTotal] = useState(0);
+  const [receiptCashTendered, setReceiptCashTendered] = useState<
+    number | undefined
+  >(undefined);
+  const [receiptChangeAmount, setReceiptChangeAmount] = useState<
+    number | undefined
+  >(undefined);
 
   // Cash tendered and change
   const [cashTendered, setCashTendered] = useState<string>("");
@@ -44,8 +51,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const cashInputRef = useRef<HTMLInputElement>(null);
   const modalOpenedRef = useRef(false);
 
-  const { settings } = useSettings();
+  const { settings, fetchSettings } = useSettings();
+  const { refreshData } = useRefresh();
   const { format } = useCurrencyFormatter();
+
+  // Effect to refresh settings when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshData(); // Trigger global refresh
+      fetchSettings(); // Specifically fetch settings
+    }
+  }, [isOpen, refreshData, fetchSettings]);
 
   // Calculate total when cart items change
   const total = calculateTotal();
@@ -120,8 +136,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }
 
   function calculateTax() {
+    // Only calculate tax if it's enabled in settings
+    if (!settings?.taxEnabled) {
+      return 0;
+    }
+
     const subtotal = calculateSubtotal();
-    const taxRate = settings?.taxEnabled ? settings.taxRate / 100 : 0;
+    const taxRate = settings.taxRate / 100;
     return subtotal * taxRate;
   }
 
@@ -193,12 +214,35 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setReceiptTax(tax);
       setReceiptTotal(totalAmount);
 
+      // Calculate and store the cash and change amounts for the receipt
+      if (paymentMethod === "cash" && cashTendered) {
+        const cashAmount = parseFloat(cashTendered);
+        setReceiptCashTendered(cashAmount);
+
+        // Calculate change as the difference between cash tendered and total
+        const calculatedChange = cashAmount - totalAmount;
+        const roundedChange = Math.max(
+          0,
+          parseFloat(calculatedChange.toFixed(2))
+        );
+        setReceiptChangeAmount(roundedChange);
+      } else {
+        setReceiptCashTendered(undefined);
+        setReceiptChangeAmount(undefined);
+      }
+
       // Call the onCompleteCheckout function with payment details
       const cashAmount = cashTendered ? parseFloat(cashTendered) : 0;
+      const calculatedChange = cashAmount - total;
+      const roundedChange = Math.max(
+        0,
+        parseFloat(calculatedChange.toFixed(2))
+      );
+
       const newOrderId = await onCompleteCheckout(
         paymentMethod,
         paymentMethod === "cash" ? cashAmount : undefined,
-        changeAmount > 0 ? changeAmount : undefined
+        paymentMethod === "cash" ? roundedChange : undefined
       );
 
       // Set the order number and show the receipt
@@ -219,6 +263,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     onClose();
   };
 
+  // Determine if we should show the tax row
+  const showTax = settings?.taxEnabled || false;
+
   // If showing receipt, render the Receipt component with the saved items
   if (showReceipt && orderNumber !== null) {
     return (
@@ -229,12 +276,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         subtotal={receiptSubtotal}
         tax={receiptTax}
         total={receiptTotal}
-        cashTendered={
-          paymentMethod === "cash" && cashTendered
-            ? parseFloat(cashTendered)
-            : undefined
-        }
-        changeAmount={changeAmount > 0 ? changeAmount : undefined}
+        cashTendered={receiptCashTendered}
+        changeAmount={receiptChangeAmount}
         onPrint={() => console.log("Printing receipt...")}
         onClose={handleCloseReceipt}
       />
@@ -274,10 +317,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <span>Subtotal</span>
               <span>{format(calculateSubtotal())}</span>
             </div>
-            <div className="summary-tax">
-              <span>Tax ({settings?.taxRate || 0}%)</span>
-              <span>{format(calculateTax())}</span>
-            </div>
+            {showTax && (
+              <div className="summary-tax">
+                <span>Tax ({settings?.taxRate || 0}%)</span>
+                <span>{format(calculateTax())}</span>
+              </div>
+            )}
             <div className="summary-total">
               <span>Total</span>
               <span>{format(calculateTotal())}</span>
@@ -339,7 +384,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
                 <div className="change-amount-display">
                   <span>Change:</span>
-                  <span className="change-value">{format(changeAmount)}</span>
+                  <span className="change-value">
+                    {format(
+                      cashTendered && parseFloat(cashTendered) > total
+                        ? parseFloat(
+                            (parseFloat(cashTendered) - total).toFixed(2)
+                          )
+                        : 0
+                    )}
+                  </span>
                 </div>
               </div>
             )}
@@ -352,6 +405,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
                 className={`complete-button ${processing ? "processing" : ""}`}

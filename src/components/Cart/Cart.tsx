@@ -2,6 +2,7 @@ import React from "react";
 import { Product } from "../Products/ProductGrid";
 import "./Cart.css";
 import { useCurrencyFormatter } from "../../utils/formatCurrency";
+import { useRefresh } from "../../contexts/RefreshContext";
 
 export interface CartItem {
   product: Product;
@@ -28,6 +29,9 @@ const Cart: React.FC<CartProps> = ({
   onClose, // Receive the close handler
 }) => {
   const { format } = useCurrencyFormatter();
+  const { refreshData } = useRefresh();
+
+  console.log("Cart items:", onCheckout);
 
   const calculateTotal = () => {
     return items.reduce((total, item) => {

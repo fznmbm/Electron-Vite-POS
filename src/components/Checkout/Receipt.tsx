@@ -89,6 +89,9 @@ const Receipt: React.FC<ReceiptProps> = ({
     console.error("Error loading settings for receipt:", error);
   }
 
+  // Determine if we should show the tax section
+  const showTax = settings?.taxEnabled && tax > 0;
+
   return (
     <div className="receipt-modal-overlay">
       <div className="receipt-container">
@@ -135,10 +138,12 @@ const Receipt: React.FC<ReceiptProps> = ({
               <span>Subtotal:</span>
               <span>{format(subtotal)}</span>
             </div>
-            <div className="receipt-total-row">
-              <span>Tax ({settings?.taxRate || 0}%):</span>
-              <span>{format(tax)}</span>
-            </div>
+            {showTax && (
+              <div className="receipt-total-row">
+                <span>Tax ({settings.taxRate}%):</span>
+                <span>{format(tax)}</span>
+              </div>
+            )}
             <div className="receipt-total-row grand-total">
               <span>Total:</span>
               <span>{format(total)}</span>
@@ -146,16 +151,26 @@ const Receipt: React.FC<ReceiptProps> = ({
           </div>
 
           <div className="receipt-payment">
-            <p>Payment Method: {paymentMethod}</p>
-            {paymentMethod === "cash" && cashTendered && (
+            <div className="payment-detail-row">
+              <span>Payment Method:</span>
+              <span className="payment-value">{paymentMethod}</span>
+            </div>
+            {paymentMethod === "cash" && cashTendered !== undefined && (
               <>
-                <p>Cash Tendered: {format(cashTendered)}</p>
-                {changeAmount && changeAmount > 0 && (
-                  <p>Change: {format(changeAmount)}</p>
+                <div className="payment-detail-row">
+                  <span>Cash Tendered:</span>
+                  <span className="payment-value">{format(cashTendered)}</span>
+                </div>
+                {changeAmount !== undefined && (
+                  <div className="payment-detail-row">
+                    <span>Change:</span>
+                    <span className="payment-value">
+                      {format(changeAmount)}
+                    </span>
+                  </div>
                 )}
               </>
             )}
-            <p>Amount Paid: {format(total)}</p>
           </div>
 
           <div className="receipt-custom-footer">{receiptFooter}</div>

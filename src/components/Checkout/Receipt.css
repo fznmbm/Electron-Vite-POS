@@ -130,10 +130,19 @@
   margin: 16px 0;
   border-top: 1px dashed #ccc;
   padding-top: 16px;
+  font-size: 0.9rem; /* Smaller font size for payment details */
 }
 
-.receipt-payment p {
+/* New styling for payment details */
+.payment-detail-row {
+  display: flex;
+  justify-content: space-between;
   margin: 4px 0;
+}
+
+.payment-value {
+  text-align: right;
+  font-weight: normal;
 }
 
 .receipt-actions {
