@@ -31,8 +31,6 @@ const Cart: React.FC<CartProps> = ({
   const { format } = useCurrencyFormatter();
   const { refreshData } = useRefresh();
 
-  console.log("Cart items:", onCheckout);
-
   const calculateTotal = () => {
     return items.reduce((total, item) => {
       return total + item.product.price * item.quantity;

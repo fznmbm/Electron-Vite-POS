@@ -56,6 +56,9 @@ const Receipt: React.FC<ReceiptProps> = ({
         settings.receiptHeader || "Thank you for your purchase!"
       );
 
+      console.log("Receipt header set to:", settings.receiptHeader);
+      console.log("Receipt footer set to:", settings.receiptFooter);
+
       // Set footer from settings or use default
       setReceiptFooter(settings.receiptFooter || "Please come again!");
     }

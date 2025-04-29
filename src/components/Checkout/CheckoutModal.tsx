@@ -47,6 +47,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     null
   );
 
+  // Add this new ref
+  const hasRefreshedRef = useRef(false);
+
   // Reference to the cash input for focus management
   const cashInputRef = useRef<HTMLInputElement>(null);
   const modalOpenedRef = useRef(false);
@@ -57,9 +60,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // Effect to refresh settings when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasRefreshedRef.current) {
+      // Only refresh once when the modal opens
+      hasRefreshedRef.current = true;
+
       refreshData(); // Trigger global refresh
       fetchSettings(); // Specifically fetch settings
+    } else if (!isOpen) {
+      // Reset the refresh flag when the modal closes
+      hasRefreshedRef.current = false;
     }
   }, [isOpen, refreshData, fetchSettings]);
 
