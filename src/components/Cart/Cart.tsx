@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Product } from "../Products/ProductGrid";
 import "./Cart.css";
 import { useCurrencyFormatter } from "../../utils/formatCurrency";
 import { useRefresh } from "../../contexts/RefreshContext";
+import { useSettings } from "../../hooks/useSettings"; // Add this import
 
 export interface CartItem {
   product: Product;
@@ -28,8 +29,19 @@ const Cart: React.FC<CartProps> = ({
   onCheckout,
   onClose, // Receive the close handler
 }) => {
+  const { settings } = useSettings(); // Add this to ensure cart refreshes when settings change
   const { format } = useCurrencyFormatter();
   const { refreshData } = useRefresh();
+
+  const refresh = useMemo(() => {
+    return refreshData;
+  }, [refreshData]);
+
+  const total = useMemo(() => {
+    return items.reduce((total, item) => {
+      return total + item.product.price * item.quantity;
+    }, 0);
+  }, [items]);
 
   const calculateTotal = () => {
     return items.reduce((total, item) => {

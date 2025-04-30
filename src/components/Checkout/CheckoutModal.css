@@ -386,7 +386,7 @@
 
 /* Discount Section */
 .discount-section {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   padding: 0.75rem;
   background-color: #f8f9fa;
   border-radius: 6px;
@@ -397,7 +397,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  /* margin-bottom: 0.75rem; */
 }
 
 .discount-header h4 {
@@ -406,9 +406,21 @@
   color: #555;
 }
 
+.discount-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #424242;
+}
+
 .discount-toggle {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.discount-toggle label {
+  font-size: 0.9rem;
+  color: #616161;
 }
 
 .discount-toggle input[type="checkbox"] {
@@ -419,7 +431,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .discount-type-select {
@@ -427,12 +439,12 @@
   min-width: 120px;
 }
 
-.discount-type-select select {
-  width: 100%;
-  padding: 0.6rem;
-  border: 1px solid #ddd;
+.discount-type-select select,
+.discount-value-input input {
+  font-size: 0.9rem;
+  padding: 0.5rem;
   border-radius: 4px;
-  background-color: white;
+  border: 1px solid #ddd;
 }
 
 .discount-value-input {
@@ -462,9 +474,10 @@
 }
 
 .input-with-icon .input-icon {
-  position: absolute;
+  /* position: absolute;
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.9rem; */
+  font-size: 0.85rem;
 }
 
 .input-with-icon.left .input-icon {
@@ -478,8 +491,8 @@
 .discount-error-message {
   width: 100%;
   color: #f44336;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  margin-top: 4px;
 }
 
 .summary-discount {

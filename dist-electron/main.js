@@ -77,6 +77,7 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         total REAL NOT NULL,
         tax REAL NOT NULL,
+        discount REAL DEFAULT 0, /* Add this line */
         payment_method TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -480,8 +481,8 @@ class DatabaseService {
           return;
         }
         db.run(
-          "INSERT INTO orders (total, tax, payment_method) VALUES (?, ?, ?)",
-          [order.total, order.tax, order.payment_method],
+          "INSERT INTO orders (total, tax, discount, payment_method) VALUES (?, ?, ?,?)",
+          [order.total, order.tax, order.discount || 0, order.payment_method],
           function(err2) {
             if (err2) {
               db.run("ROLLBACK", () => {

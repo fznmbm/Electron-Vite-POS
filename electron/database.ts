@@ -24,6 +24,7 @@ export interface Order {
   id?: number;
   total: number;
   tax: number;
+  discount?: number; // Add this line
   payment_method: string;
   created_at?: string;
   items?: OrderItem[];
@@ -94,6 +95,7 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         total REAL NOT NULL,
         tax REAL NOT NULL,
+        discount REAL DEFAULT 0, /* Add this line */
         payment_method TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -522,8 +524,8 @@ class DatabaseService {
 
         // Insert the order
         db.run(
-          "INSERT INTO orders (total, tax, payment_method) VALUES (?, ?, ?)",
-          [order.total, order.tax, order.payment_method],
+          "INSERT INTO orders (total, tax, discount, payment_method) VALUES (?, ?, ?,?)",
+          [order.total, order.tax, order.discount || 0, order.payment_method],
           function (err) {
             if (err) {
               // Rollback on error

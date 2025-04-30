@@ -11,6 +11,10 @@ interface ReceiptProps {
   subtotal: number;
   tax: number;
   total: number;
+  // Add these new props:
+  discount: number;
+  discountType: string | null;
+  discountValue: string | null;
   cashTendered?: number;
   changeAmount?: number;
   onPrint: () => void;
@@ -24,6 +28,9 @@ const Receipt: React.FC<ReceiptProps> = ({
   subtotal,
   tax,
   total,
+  discount,
+  discountType,
+  discountValue,
   cashTendered,
   changeAmount,
   onPrint,
@@ -55,9 +62,6 @@ const Receipt: React.FC<ReceiptProps> = ({
       setReceiptHeader(
         settings.receiptHeader || "Thank you for your purchase!"
       );
-
-      console.log("Receipt header set to:", settings.receiptHeader);
-      console.log("Receipt footer set to:", settings.receiptFooter);
 
       // Set footer from settings or use default
       setReceiptFooter(settings.receiptFooter || "Please come again!");
@@ -141,6 +145,17 @@ const Receipt: React.FC<ReceiptProps> = ({
               <span>Subtotal:</span>
               <span>{format(subtotal)}</span>
             </div>
+
+            {discount > 0 && (
+              <div className="receipt-row">
+                <span>
+                  Discount{" "}
+                  {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                </span>
+                <span>-{format(discount)}</span>
+              </div>
+            )}
+
             {showTax && (
               <div className="receipt-total-row">
                 <span>Tax ({settings.taxRate}%):</span>
@@ -156,7 +171,9 @@ const Receipt: React.FC<ReceiptProps> = ({
           <div className="receipt-payment">
             <div className="payment-detail-row">
               <span>Payment Method:</span>
-              <span className="payment-value">{paymentMethod}</span>
+              <span className="payment-value">
+                {paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}
+              </span>
             </div>
             {paymentMethod === "cash" && cashTendered !== undefined && (
               <>
