@@ -267,6 +267,27 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
+  // Add this function after the handleCashTenderedChange function
+  const handleQuickCashSelect = (amount: number) => {
+    // If it's "exact" amount, use the total
+    if (amount === -1) {
+      setCashTendered(total.toFixed(2));
+    } else {
+      setCashTendered(amount.toFixed(2));
+    }
+
+    // Clear any previous error
+    setCashTenderedError(null);
+
+    // Focus the cash input field and select the text
+    setTimeout(() => {
+      if (cashInputRef.current) {
+        cashInputRef.current.focus();
+        cashInputRef.current.select();
+      }
+    }, 100);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -375,241 +396,303 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="checkout-modal">
-        <div className="modal-header">
-          <h2>Checkout</h2>
-          <button
-            className="close-button"
-            onClick={onClose}
-            disabled={processing}
-          >
-            ×
-          </button>
-        </div>
-        <div className="modal-body">
-          {errorMessage && (
-            <div className="checkout-error-message">{errorMessage}</div>
-          )}
-          <div className="order-summary">
-            <h3>Order Summary</h3>
-            <div className="summary-items">
-              {cartItems.map((item) => (
-                <div key={item.product.id} className="summary-item">
-                  <span>
-                    {item.quantity} × {item.product.name}
-                  </span>
-                  <span>{format(item.product.price * item.quantity)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="summary-subtotal">
-              <span>Subtotal</span>
-              <span>{format(calculateSubtotal())}</span>
-            </div>
-
-            {/* Add discount to the summary in the JSX after the subtotal and  before tax (around line 265) */}
-            {discountEnabled && calculateDiscount() > 0 && (
-              <div className="summary-discount">
-                <span>
-                  Discount{" "}
-                  {discountType === "percentage" ? `(${discountValue}%)` : ""}
-                </span>
-                <span>-{format(calculateDiscount())}</span>
-              </div>
-            )}
-
-            {showTax && (
-              <div className="summary-tax">
-                <span>Tax ({settings?.taxRate || 0}%)</span>
-                <span>{format(calculateTax())}</span>
-              </div>
-            )}
-            <div className="summary-total">
-              <span>Total</span>
-              <span>{format(calculateTotal())}</span>
-            </div>
+      <div className="checkout-container">
+        <div className="checkout-modal">
+          <div className="modal-header">
+            <h2>Checkout</h2>
+            <button
+              className="close-button"
+              onClick={onClose}
+              disabled={processing}
+            >
+              ×
+            </button>
           </div>
+          <div className="modal-body">
+            {errorMessage && (
+              <div className="checkout-error-message">{errorMessage}</div>
+            )}
+            <div className="order-summary">
+              <h3>Order Summary</h3>
+              <div className="summary-items">
+                {cartItems.map((item) => (
+                  <div key={item.product.id} className="summary-item">
+                    <span>
+                      {item.quantity} × {item.product.name}
+                    </span>
+                    <span>{format(item.product.price * item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="summary-subtotal">
+                <span>Subtotal</span>
+                <span>{format(calculateSubtotal())}</span>
+              </div>
 
-          {/* Discount Section */}
-          <div className="discount-section">
-            <div className="discount-header">
-              <h3>Discount</h3>
-              <div className="discount-toggle">
-                <input
-                  type="checkbox"
-                  id="enable-discount"
-                  checked={discountEnabled}
-                  onChange={(e) => setDiscountEnabled(e.target.checked)}
-                  disabled={processing}
-                />
-                <label htmlFor="enable-discount">Apply Discount</label>
+              {/* Add discount to the summary in the JSX after the subtotal and  before tax (around line 265) */}
+              {discountEnabled && calculateDiscount() > 0 && (
+                <div className="summary-discount">
+                  <span>
+                    Discount{" "}
+                    {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                  </span>
+                  <span>-{format(calculateDiscount())}</span>
+                </div>
+              )}
+
+              {showTax && (
+                <div className="summary-tax">
+                  <span>Tax ({settings?.taxRate || 0}%)</span>
+                  <span>{format(calculateTax())}</span>
+                </div>
+              )}
+              <div className="summary-total">
+                <span>Total</span>
+                <span>{format(calculateTotal())}</span>
               </div>
             </div>
 
-            {discountEnabled && (
-              <>
-                <div className="discount-controls">
-                  <div className="discount-type-select">
-                    <select
-                      value={discountType}
-                      onChange={(e) => setDiscountType(e.target.value)}
-                      disabled={processing}
-                    >
-                      <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Fixed Amount</option>
-                    </select>
-                  </div>
-                  <div className="discount-value-input">
-                    <div
-                      className={`input-with-icon ${
-                        discountType === "percentage" ? "right" : "left"
-                      }`}
-                    >
-                      {discountType === "fixed" && (
-                        <span className="input-icon">
-                          {settings?.currencySymbol || "$"}
-                        </span>
-                      )}
-                      <input
-                        type="text"
-                        value={discountValue}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^\d.]/g, "");
-                          setDiscountValue(value);
+            {/* Discount Section */}
+            <div className="discount-section">
+              <div className="discount-header">
+                <h3>Discount</h3>
+                <div className="discount-toggle">
+                  <input
+                    type="checkbox"
+                    id="enable-discount"
+                    checked={discountEnabled}
+                    onChange={(e) => setDiscountEnabled(e.target.checked)}
+                    disabled={processing}
+                  />
+                  <label htmlFor="enable-discount">Apply Discount</label>
+                </div>
+              </div>
 
-                          const numValue = parseFloat(value);
-                          if (isNaN(numValue)) {
-                            setDiscountError("Please enter a valid number");
-                          } else if (numValue < 0) {
-                            setDiscountError("Discount cannot be negative");
-                          } else if (
-                            discountType === "percentage" &&
-                            numValue > 100
-                          ) {
-                            setDiscountError("Percentage cannot exceed 100%");
-                          } else if (
-                            discountType === "fixed" &&
-                            numValue > calculateSubtotal()
-                          ) {
-                            setDiscountError("Discount cannot exceed subtotal");
-                          } else {
-                            setDiscountError(null);
-                          }
-                        }}
-                        placeholder={
-                          discountType === "percentage" ? "10" : "5.00"
-                        }
+              {discountEnabled && (
+                <>
+                  <div className="discount-controls">
+                    <div className="discount-type-select">
+                      <select
+                        value={discountType}
+                        onChange={(e) => setDiscountType(e.target.value)}
                         disabled={processing}
-                      />
-                      {discountType === "percentage" && (
-                        <span className="input-icon">%</span>
+                      >
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed Amount</option>
+                      </select>
+                    </div>
+                    <div className="discount-value-input">
+                      <div
+                        className={`input-with-icon ${
+                          discountType === "percentage" ? "right" : "left"
+                        }`}
+                      >
+                        {discountType === "fixed" && (
+                          <span className="input-icon">
+                            {settings?.currencySymbol || "$"}
+                          </span>
+                        )}
+                        <input
+                          type="text"
+                          value={discountValue}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.]/g, "");
+                            setDiscountValue(value);
+
+                            const numValue = parseFloat(value);
+                            if (isNaN(numValue)) {
+                              setDiscountError("Please enter a valid number");
+                            } else if (numValue < 0) {
+                              setDiscountError("Discount cannot be negative");
+                            } else if (
+                              discountType === "percentage" &&
+                              numValue > 100
+                            ) {
+                              setDiscountError("Percentage cannot exceed 100%");
+                            } else if (
+                              discountType === "fixed" &&
+                              numValue > calculateSubtotal()
+                            ) {
+                              setDiscountError(
+                                "Discount cannot exceed subtotal"
+                              );
+                            } else {
+                              setDiscountError(null);
+                            }
+                          }}
+                          placeholder={
+                            discountType === "percentage" ? "10" : "5.00"
+                          }
+                          disabled={processing}
+                        />
+                        {discountType === "percentage" && (
+                          <span className="input-icon">%</span>
+                        )}
+                      </div>
+                      {discountError && (
+                        <div className="discount-error-message">
+                          {discountError}
+                        </div>
                       )}
                     </div>
-                    {discountError && (
-                      <div className="discount-error-message">
-                        {discountError}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="payment-methods">
+                <h3>Payment Method</h3>
+                <div className="payment-options">
+                  <label>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="cash"
+                      checked={paymentMethod === "cash"}
+                      onChange={() => handlePaymentMethodChange("cash")}
+                      disabled={processing}
+                    />
+                    Cash
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="card"
+                      checked={paymentMethod === "card"}
+                      onChange={() => handlePaymentMethodChange("card")}
+                      disabled={processing}
+                    />
+                    Card
+                  </label>
+                </div>
+              </div>
+              {paymentMethod === "cash" && (
+                <div className="cash-payment-details">
+                  <div className="cash-tendered-group">
+                    <label htmlFor="cash-tendered">Cash Tendered:</label>
+                    <div className="cash-input-wrapper">
+                      <span className="currency-symbol">
+                        {settings?.currencySymbol || "$"}
+                      </span>
+                      <input
+                        ref={cashInputRef}
+                        id="cash-tendered"
+                        type="text"
+                        value={cashTendered}
+                        onChange={handleCashTenderedChange}
+                        onFocus={(e) => e.target.select()}
+                        className={cashTenderedError ? "error" : ""}
+                        disabled={processing}
+                        inputMode="decimal"
+                      />
+                    </div>
+
+                    {cashTenderedError && (
+                      <div className="cash-error-message">
+                        {cashTenderedError}
                       </div>
                     )}
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="payment-methods">
-              <h3>Payment Method</h3>
-              <div className="payment-options">
-                <label>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={paymentMethod === "cash"}
-                    onChange={() => handlePaymentMethodChange("cash")}
-                    disabled={processing}
-                  />
-                  Cash
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={() => handlePaymentMethodChange("card")}
-                    disabled={processing}
-                  />
-                  Card
-                </label>
-              </div>
-            </div>
-            {paymentMethod === "cash" && (
-              <div className="cash-payment-details">
-                <div className="cash-tendered-group">
-                  <label htmlFor="cash-tendered">Cash Tendered:</label>
-                  <div className="cash-input-wrapper">
-                    <span className="currency-symbol">
-                      {settings?.currencySymbol || "$"}
+                  <div className="change-amount-display">
+                    <span>Change:</span>
+                    <span className="change-value">
+                      {format(
+                        cashTendered && parseFloat(cashTendered) > total
+                          ? parseFloat(
+                              (parseFloat(cashTendered) - total).toFixed(2)
+                            )
+                          : 0
+                      )}
                     </span>
-                    <input
-                      ref={cashInputRef}
-                      id="cash-tendered"
-                      type="text"
-                      value={cashTendered}
-                      onChange={handleCashTenderedChange}
-                      onFocus={(e) => e.target.select()}
-                      className={cashTenderedError ? "error" : ""}
-                      disabled={processing}
-                      inputMode="decimal"
-                    />
                   </div>
-                  {cashTenderedError && (
-                    <div className="cash-error-message">
-                      {cashTenderedError}
-                    </div>
-                  )}
                 </div>
-                <div className="change-amount-display">
-                  <span>Change:</span>
-                  <span className="change-value">
-                    {format(
-                      cashTendered && parseFloat(cashTendered) > total
-                        ? parseFloat(
-                            (parseFloat(cashTendered) - total).toFixed(2)
-                          )
-                        : 0
-                    )}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={onClose}
-                disabled={processing}
-              >
-                Cancel
-              </button>
+              )}
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={onClose}
+                  disabled={processing}
+                >
+                  Cancel
+                </button>
 
-              <button
-                type="submit"
-                className={`complete-button ${processing ? "processing" : ""}`}
-                disabled={
-                  processing ||
-                  (paymentMethod === "cash" &&
-                    (!cashTendered ||
-                      parseFloat(parseFloat(cashTendered).toFixed(2)) <
-                        parseFloat(total.toFixed(2))))
-                }
-              >
-                {processing ? "Processing..." : "Complete Payment"}
-              </button>
-            </div>
-          </form>
+                <button
+                  type="submit"
+                  className={`complete-button ${
+                    processing ? "processing" : ""
+                  }`}
+                  disabled={
+                    processing ||
+                    (paymentMethod === "cash" &&
+                      (!cashTendered ||
+                        parseFloat(parseFloat(cashTendered).toFixed(2)) <
+                          parseFloat(total.toFixed(2))))
+                  }
+                >
+                  {processing ? "Processing..." : "Complete Payment"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+
+        {/* Cash selection panel - only shown when payment method is cash */}
+        {paymentMethod === "cash" && (
+          <div className="cash-selection-panel">
+            <button
+              className="cash-denomination"
+              onClick={() => handleQuickCashSelect(500)}
+              disabled={processing}
+            >
+              {settings?.currencySymbol || "$"} 500
+            </button>
+            <button
+              className="cash-denomination"
+              onClick={() => handleQuickCashSelect(1000)}
+              disabled={processing}
+            >
+              {settings?.currencySymbol || "$"} 1000
+            </button>
+            <button
+              className="cash-denomination"
+              onClick={() => handleQuickCashSelect(2000)}
+              disabled={processing}
+            >
+              {settings?.currencySymbol || "$"} 2000
+            </button>
+            <button
+              className="cash-denomination"
+              onClick={() => handleQuickCashSelect(5000)}
+              disabled={processing}
+            >
+              {settings?.currencySymbol || "$"} 5000
+            </button>
+            <button
+              className="cash-denomination"
+              onClick={() => handleQuickCashSelect(10000)}
+              disabled={processing}
+            >
+              {settings?.currencySymbol || "$"} 10000
+            </button>
+            <button
+              className="cash-denomination exact"
+              onClick={() => handleQuickCashSelect(-1)}
+              disabled={processing}
+            >
+              Exact
+            </button>
+            <button
+              className="cash-denomination clear"
+              onClick={() => setCashTendered("")}
+              disabled={processing}
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
