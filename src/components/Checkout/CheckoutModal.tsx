@@ -145,6 +145,23 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }, [isOpen, paymentMethod, total]);
 
+  // Add this effect after your other useEffect hooks
+  useEffect(() => {
+    // When discount is disabled and we're in cash payment mode, refocus on the cash input
+    if (
+      isOpen &&
+      paymentMethod === "cash" &&
+      !discountEnabled &&
+      cashInputRef.current
+    ) {
+      // Use a small timeout to ensure the DOM has updated
+      setTimeout(() => {
+        cashInputRef.current?.focus();
+        cashInputRef.current?.select();
+      }, 10);
+    }
+  }, [discountEnabled, isOpen, paymentMethod]);
+
   // Handle payment method change
   const handlePaymentMethodChange = (method: string) => {
     setPaymentMethod(method);
@@ -583,7 +600,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 disabled={
                   processing ||
                   (paymentMethod === "cash" &&
-                    (!cashTendered || parseFloat(cashTendered) < total))
+                    (!cashTendered ||
+                      parseFloat(parseFloat(cashTendered).toFixed(2)) <
+                        parseFloat(total.toFixed(2))))
                 }
               >
                 {processing ? "Processing..." : "Complete Payment"}
